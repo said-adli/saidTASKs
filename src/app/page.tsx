@@ -10,6 +10,7 @@ import { TaskItem } from '@/components/tasks/TaskItem';
 import { Plus, LayoutDashboard, AlertCircle, Sparkles, Mic, Trophy, ArrowRight, CheckSquare, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
+import Loading from './loading';
 
 // ─── Animation Variants ─────────────────────────────────────────────
 const fadeUp = {
@@ -370,7 +371,11 @@ function Dashboard() {
 // ROOT PAGE — routes between Landing and Dashboard
 // ═════════════════════════════════════════════════════════════════════
 export default function Home() {
-  const { user, loginWithGoogle } = useAuthStore();
+  const { user, loading, loginWithGoogle } = useAuthStore();
+
+  if (loading) {
+    return <Loading />;
+  }
 
   if (!user) {
     return <LandingPage onLogin={loginWithGoogle} />;
