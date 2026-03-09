@@ -5,9 +5,20 @@ import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/store/authStore';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { user, loading } = useAuthStore();
+
+    // Non-logged-in users get a clean full-width canvas (for landing page)
+    if (!user && !loading) {
+        return (
+            <div className="flex flex-col min-h-screen w-full bg-slate-950 text-white overflow-x-hidden">
+                {children}
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen w-full bg-white dark:bg-zinc-950 overflow-hidden relative">
@@ -51,3 +62,4 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </div>
     );
 }
+
