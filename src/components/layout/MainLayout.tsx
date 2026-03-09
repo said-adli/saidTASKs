@@ -11,8 +11,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { user, loading } = useAuthStore();
 
+    // Auth is still initializing — render a bare container so the Splash Screen
+    // from page.tsx appears without any Dashboard chrome (Sidebar/Navbar).
+    if (loading) {
+        return (
+            <div className="flex flex-col min-h-screen w-full bg-slate-950 text-white overflow-x-hidden">
+                {children}
+            </div>
+        );
+    }
+
     // Non-logged-in users get a clean full-width canvas (for landing page)
-    if (!user && !loading) {
+    if (!user) {
         return (
             <div className="flex flex-col min-h-screen w-full bg-slate-950 text-white overflow-x-hidden">
                 {children}
