@@ -7,10 +7,12 @@ import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useTags } from '@/hooks/useTags';
 import { useAuthStore } from '@/store/authStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import { TaskPriority, SubTask, Attachment, RecurringInterval } from '@/lib/firebase/taskService';
 import { uploadToCloudinary } from '@/lib/cloudinary/uploadService';
 import { aiService } from '@/lib/gemini/aiService';
-import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat, UserCircle } from 'lucide-react';
+import { aiAuditorService } from '@/lib/gemini/aiAuditorService';
+import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat, UserCircle, Wand2 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -94,6 +96,7 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isBreakingDown, setIsBreakingDown] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isEnriching, setIsEnriching] = useState(false);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -128,6 +131,44 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
             alert("Could not break down task. Make sure Gemini API Key is set.");
         } finally {
             setIsBreakingDown(false);
+        }
+    };
+
+    const handleMagicEnrichment = async () => {
+        if (!title.trim()) {
+            toast.error("Please enter a title first.");
+            return;
+        }
+        try {
+            setIsEnriching(true);
+            const tasksHistory = useTaskStore.getState?.()?.tasks || [];
+            // Fallback if we don't have global direct access: just use currently loaded tasks
+
+            const result = await aiAuditorService.enrichTask(
+                title.trim(),
+                description.trim(),
+                members,
+                tasksHistory
+            );
+
+            if (result.suggestedDescription) {
+                setDescription(result.suggestedDescription);
+            }
+            if (result.recommendedAssigneeId) {
+                setAssigneeId(result.recommendedAssigneeId);
+                const assignedMember = memberProfiles[result.recommendedAssigneeId];
+                if (assignedMember) {
+                    toast.success(`Gemini assigned to ${assignedMember.displayName || 'member'}`, { icon: '✨' });
+                }
+            } else {
+                toast.success("Description enriched!", { icon: '✨' });
+            }
+
+        } catch (error: any) {
+            console.error("Failed to enrich task", error);
+            toast.error("Failed to generate magic enrichment. Check your API key.");
+        } finally {
+            setIsEnriching(false);
         }
     };
 
@@ -246,7 +287,18 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
                         )}
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
+                                <button
+                                    type="button"
+                                    onClick={handleMagicEnrichment}
+                                    disabled={!title.trim() || isEnriching}
+                                    className="px-2 py-1 flex items-center gap-1 text-[10px] sm:text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-md transition-colors disabled:opacity-50"
+                                >
+                                    {isEnriching ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                                    Magic Fill
+                                </button>
+                            </div>
                             <textarea
                                 rows={3}
                                 value={description}

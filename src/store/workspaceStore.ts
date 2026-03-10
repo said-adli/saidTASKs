@@ -11,10 +11,12 @@ interface WorkspaceState {
     memberProfiles: Record<string, UserProfile>;
     loading: boolean;
     error: string | null;
+    isLoungeOpen: boolean;
     setWorkspaces: (workspaces: Workspace[]) => void;
     setActiveWorkspaceId: (id: string | null) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
+    setIsLoungeOpen: (isOpen: boolean) => void;
     fetchWorkspaces: (userId: string) => Promise<void>;
     subscribeToMembers: (memberIds: string[]) => void;
     unsubscribeFromMembers: () => void;
@@ -52,10 +54,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 memberProfiles: {},
                 loading: false,
                 error: null,
+                isLoungeOpen: false,
                 setWorkspaces: (workspaces) => set({ workspaces }),
                 setActiveWorkspaceId: (id) => set({ activeWorkspaceId: id }),
                 setLoading: (loading) => set({ loading }),
                 setError: (error) => set({ error }),
+                setIsLoungeOpen: (isOpen) => set({ isLoungeOpen: isOpen }),
                 fetchWorkspaces: async (userId: string) => {
                     set({ loading: true, error: null });
                     try {

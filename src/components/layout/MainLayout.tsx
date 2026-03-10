@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import { CommandPalette } from '@/components/ui/CommandPalette';
+import { ChatPanel, ChatToggleButton } from '@/components/chat/ChatPanel';
+import { LoungeRoom } from '@/components/video/LoungeRoom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
@@ -11,8 +13,11 @@ import { Loader2 } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const { user, loading: authLoading } = useAuthStore();
-    const { loading: workspaceLoading } = useWorkspaceStore();
+    const { workspaces, activeWorkspaceId, isLoungeOpen, setIsLoungeOpen, loading: workspaceLoading } = useWorkspaceStore();
+
+    const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
     // Auth is still initializing — render a bare container so the Splash Screen
     // from page.tsx appears without any Dashboard chrome (Sidebar/Navbar).
@@ -98,7 +103,31 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     </AnimatePresence>
                 </main>
             </div>
+
+            {/* Chat System */}
+            <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+            {!isChatOpen && <ChatToggleButton onClick={() => setIsChatOpen(true)} />}
+
+            {/* Chat backdrop on mobile */}
+            <AnimatePresence>
+                {isChatOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsChatOpen(false)}
+                        className="fixed inset-0 bg-black/30 z-30 sm:hidden backdrop-blur-sm"
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Video Lounge */}
+            <LoungeRoom
+                workspaceId={activeWorkspaceId || ''}
+                workspaceName={activeWorkspace?.name || 'Workspace'}
+                isOpen={isLoungeOpen}
+                onClose={() => setIsLoungeOpen(false)}
+            />
         </div>
     );
 }
-

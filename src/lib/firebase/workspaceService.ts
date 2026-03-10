@@ -144,5 +144,20 @@ export const activityLogService = {
             })) as ActivityLogEntry[];
             callback(entries);
         });
+    },
+
+    getRecentLogs: async (workspaceId: string, limitCount: number = 20): Promise<ActivityLogEntry[]> => {
+        try {
+            const logRef = collection(db, 'workspaces', workspaceId, 'activityLog');
+            const q = query(logRef, orderBy('timestamp', 'desc'), limit(limitCount));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as ActivityLogEntry[];
+        } catch (err) {
+            console.error('[ActivityLog] Failed to fetch:', err);
+            return [];
+        }
     }
 };

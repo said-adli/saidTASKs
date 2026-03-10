@@ -7,6 +7,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useTagStore } from '@/store/useTagStore';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { TaskItem } from '@/components/tasks/TaskItem';
+import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { Plus, LayoutDashboard, AlertCircle, Sparkles, Mic, Trophy, ArrowRight, CheckSquare, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -445,6 +446,9 @@ function Dashboard() {
       </header>
 
       <main className="space-y-8">
+        {/* Proactive AI Insights */}
+        <AIInsightsCard />
+
         {error && (
           <div className="p-4 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-900 flex items-start gap-3 text-red-600 dark:text-red-400">
             <AlertCircle size={20} className="shrink-0 mt-0.5" />
