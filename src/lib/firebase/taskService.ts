@@ -43,10 +43,15 @@ export interface Task {
     tagIds?: string[];
     attachments?: Attachment[];
     recurringInterval?: RecurringInterval | null;
+    icon?: string;
 }
 
 export const taskService = {
     createTask: async (userId: string, data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+        if (!data.title || data.title.trim() === '') {
+            throw new Error('Task title cannot be empty or solely whitespace.');
+        }
+
         const tasksRef = collection(db, 'tasks');
         const newDocRef = doc(tasksRef);
 

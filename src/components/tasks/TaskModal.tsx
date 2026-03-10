@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import * as chrono from 'chrono-node';
 import { X } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
@@ -12,6 +13,7 @@ import { aiService } from '@/lib/gemini/aiService';
 import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -50,6 +52,35 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
             }
         }
     }, [isOpen, initialDueDate]);
+
+    // NLP Date Auto-Parsing
+    useEffect(() => {
+        if (!isOpen || !title.trim()) return;
+
+        const timer = setTimeout(() => {
+            const parsed = chrono.parse(title);
+            if (parsed && parsed.length > 0) {
+                const result = parsed[0];
+                const date = result.start.date();
+
+                // Format for our date input (YYYY-MM-DD)
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+
+                setDueDate(`${year}-${month}-${day}`);
+
+                // Remove the parsed text from title
+                const newTitle = title.replace(result.text, '').replace(/\s+/g, ' ').trim();
+                if (newTitle !== title) {
+                    setTitle(newTitle);
+                    toast.success(`Date auto-set: ${result.text}`, { icon: '🤖', id: 'nlp-toast' });
+                }
+            }
+        }, 1500); // 1.5s delay after they stop typing
+
+        return () => clearTimeout(timer);
+    }, [title, isOpen]);
 
     const [subtasks, setSubtasks] = useState<SubTask[]>([]);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -136,8 +167,12 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
             setSelectedTagIds([]);
             setProjectId(initialProjectId);
             onClose();
-        } catch (error) {
+
+            // Fire Success Toast
+            toast.success('Task created successfully!');
+        } catch (error: any) {
             console.error("Failed to add task", error);
+            toast.error(error.message || 'Failed to create task');
         } finally {
             setIsSubmitting(false);
         }

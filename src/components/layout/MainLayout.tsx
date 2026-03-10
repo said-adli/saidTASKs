@@ -31,9 +31,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
 
     return (
-        <div className="flex h-screen w-full bg-white dark:bg-zinc-950 overflow-hidden relative">
+        <div className="flex min-h-screen w-full bg-white dark:bg-zinc-950 relative">
             {/* Desktop Sidebar */}
-            <div className="hidden md:flex h-full">
+            <div className="hidden md:flex h-screen sticky top-0 shrink-0">
                 <Sidebar />
             </div>
 
@@ -65,7 +65,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
             <div className="flex flex-col flex-1 min-w-0">
                 <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
-                <main className="flex-1 overflow-auto p-6 text-zinc-900 dark:text-zinc-100">
+                <main className="flex-1 overflow-y-auto p-6 text-zinc-900 dark:text-zinc-100">
                     {children}
                 </main>
             </div>

@@ -1,8 +1,9 @@
 import { Task, TaskPriority } from '@/lib/firebase/taskService';
-import { CheckCircle2, Circle, Clock, MoreVertical, Trash2, CalendarDays, Paperclip } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, MoreVertical, Trash2, CalendarDays, Paperclip, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTasks } from '@/hooks/useTasks';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 interface TaskItemProps {
     task: Task;
@@ -18,6 +19,15 @@ const priorityColors: Record<TaskPriority, string> = {
 export function TaskItem({ task }: TaskItemProps) {
     const { toggleTaskStatus, deleteTask } = useTasks();
     const isCompleted = task.status === 'completed';
+
+    const handleDelete = async () => {
+        try {
+            await deleteTask(task.id);
+            toast.success('Task deleted successfully');
+        } catch (error) {
+            toast.error('Failed to delete task');
+        }
+    };
 
     const getDueDateLabel = (dueDate: any) => {
         if (!dueDate) return null;
@@ -70,22 +80,32 @@ export function TaskItem({ task }: TaskItemProps) {
             <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-4">
                     <h3 className={cn(
-                        "text-base font-semibold truncate transition-colors",
+                        "text-base font-semibold truncate transition-colors flex items-center gap-2",
                         isCompleted ? "text-zinc-500 line-through" : "text-zinc-900 dark:text-zinc-100"
                     )}>
+                        {task.icon && <span className="text-lg">{task.icon}</span>}
                         {task.title}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize font-medium flex-shrink-0", priorityColors[task.priority])}>
                             {task.priority}
                         </span>
-                        <button
-                            onClick={() => deleteTask(task.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-all"
-                            title="Delete Task"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center ml-2 border-l border-zinc-200 dark:border-zinc-800 pl-2">
+                            <button
+                                onClick={() => toast('Edit feature coming soon!', { icon: '✏️' })}
+                                className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-md transition-all"
+                                title="Edit Task"
+                            >
+                                <Edit2 size={16} />
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-all"
+                                title="Delete Task"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 

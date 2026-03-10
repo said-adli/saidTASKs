@@ -433,47 +433,94 @@ function Dashboard() {
           </div>
         )}
 
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Active Tasks</h2>
-            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-xs font-bold">
-              {activeTasks.length}
-            </span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Active Tasks</h2>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 text-xs font-bold">
+                  {activeTasks.length}
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg border border-zinc-200 dark:border-zinc-700" />
+                  ))}
+                </div>
+              ) : activeTasks.length > 0 ? (
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {activeTasks.map(task => (
+                      <TaskItem key={task.id} task={task} />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400">
+                  <p>No active tasks. You&apos;re all caught up!</p>
+                </div>
+              )}
+            </section>
+
+            {completedTasks.length > 0 && (
+              <section className="space-y-4 flex-1">
+                <h2 className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">Completed</h2>
+                <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
+                  <AnimatePresence>
+                    {completedTasks.map(task => (
+                      <TaskItem key={task.id} task={task} />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </section>
+            )}
           </div>
 
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg border border-zinc-200 dark:border-zinc-700" />
-              ))}
+          {/* Daily Quests Gamification Sidebar */}
+          <div className="lg:col-span-1 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl p-6 h-fit sticky top-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Trophy className="text-orange-500" size={24} />
+              <h3 className="font-bold text-lg">Daily Quests</h3>
             </div>
-          ) : activeTasks.length > 0 ? (
-            <div className="space-y-3">
-              <AnimatePresence>
-                {activeTasks.map(task => (
-                  <TaskItem key={task.id} task={task} />
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="p-8 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400">
-              <p>No active tasks. You&apos;re all caught up!</p>
-            </div>
-          )}
-        </section>
 
-        {completedTasks.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-zinc-500 dark:text-zinc-400">Completed</h2>
-            <div className="space-y-3">
-              <AnimatePresence>
-                {completedTasks.map(task => (
-                  <TaskItem key={task.id} task={task} />
-                ))}
-              </AnimatePresence>
+            <div className="space-y-4">
+              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-500/10 cursor-default hover:border-orange-300 transition-colors">
+                <div className="flex justify-between items-start">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Clear the Inbox</span>
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded-full">+200 XP</span>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Complete all daily tasks without rescheduling.</p>
+                <div className="w-full bg-orange-200/50 dark:bg-orange-900/30 h-1.5 rounded-full mt-1">
+                  <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: '30%' }}></div>
+                </div>
+              </div>
+
+              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900/40 dark:bg-indigo-500/10 cursor-default">
+                <div className="flex justify-between items-start">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Mindful Planner</span>
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full">+50 XP</span>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Break down at least one task using AI.</p>
+                <div className="w-full bg-indigo-200/50 dark:bg-indigo-900/30 h-1.5 rounded-full mt-1">
+                  <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '0%' }}></div>
+                </div>
+              </div>
+
+              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-500/10 cursor-default">
+                <div className="flex justify-between items-start">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Streak Saver</span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">+100 XP</span>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Log in and complete 1 task for 3 days in a row.</p>
+                <div className="w-full bg-emerald-200/50 dark:bg-emerald-900/30 h-1.5 rounded-full mt-1">
+                  <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '66%' }}></div>
+                </div>
+              </div>
             </div>
-          </section>
-        )}
+          </div>
+        </div>
       </main>
 
       <TaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />

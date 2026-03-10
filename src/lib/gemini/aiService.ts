@@ -48,5 +48,34 @@ export const aiService = {
             console.error("Error breaking down task with Gemini:", error);
             throw error;
         }
+    },
+
+    categorizeTask: async (taskTitle: string): Promise<{ category: string, icon: string } | null> => {
+        try {
+            const ai = getGenAI();
+            const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            const prompt = `
+        You are an expert productivity categorization engine. 
+        Given the task title: "${taskTitle}"
+        
+        1. Determine the best category for this task (e.g., Work, Personal, Urgent, Coding, Health, Food, Finance, Learning, Chores, Setup).
+        2. Assign a single appropriate emoji icon for this task (e.g., 🍕, 💻, 🏃‍♂️, 💰, 📚, 🧹, ⚙️).
+        
+        Return ONLY a valid JSON object in this format:
+        {"category": "CategoryName", "icon": "Emoji"}
+        
+        Do not include markdown or explanations.
+        `;
+
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text();
+            const cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+            return JSON.parse(cleanJson) as { category: string, icon: string };
+        } catch (error) {
+            console.error("Error categorizing task with Gemini:", error);
+            return null;
+        }
     }
 };

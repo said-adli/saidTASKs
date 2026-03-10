@@ -8,9 +8,10 @@ import { useProjects } from '@/hooks/useProjects';
 import { useTags } from '@/hooks/useTags';
 import { useAuthStore } from '@/store/authStore';
 import { useTagStore } from '@/store/useTagStore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProjectModal } from '@/components/projects/ProjectModal';
 import { TagModal } from '@/components/tags/TagModal';
+import { Confetti } from '@/components/ui/Confetti';
 
 const topNavItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -35,6 +36,8 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
     const { profile } = useAuthStore();
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+    const [levelUpTrigger, setLevelUpTrigger] = useState(0);
+    const [prevLevel, setPrevLevel] = useState(profile ? profile.level : 1);
 
     // Calculate XP needed for next level: nextLevel^2 * 10
     const currentLevel = profile ? profile.level : 1;
@@ -45,8 +48,16 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
         ? ((currentXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100
         : 0;
 
+    useEffect(() => {
+        if (profile && profile.level > prevLevel) {
+            setLevelUpTrigger(profile.level);
+            setPrevLevel(profile.level);
+        }
+    }, [profile, prevLevel]);
+
     return (
         <aside className="w-64 border-r bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 flex flex-col h-full shrink-0">
+            <Confetti trigger={levelUpTrigger} />
             <div className="h-20 flex flex-col justify-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2 shrink-0">
                 <div className="flex items-center gap-2">
                     <CheckSquare size={24} className="text-indigo-500" />

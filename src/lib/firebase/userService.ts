@@ -15,9 +15,9 @@ export interface UserProfile {
 }
 
 export const userService = {
-    // Logic: 10 XP per task. Level = floor(sqrt(totalXP / 10)) + 1
+    // Logic: 100 XP per task. Level = floor(sqrt(totalXP / 100)) + 1
     calculateLevel: (xp: number) => {
-        return Math.floor(Math.sqrt(xp / 10)) + 1;
+        return Math.floor(Math.sqrt(xp / 100)) + 1;
     },
 
     checkDateStreak: (lastDateVal: Date | null): { increment: boolean; break: boolean } => {
@@ -57,8 +57,8 @@ export const userService = {
 
                 const data = userDoc.data() as UserProfile;
 
-                // 1. Calculate XP & Level
-                const newXp = data.xp + 10;
+                // 1. Calculate XP & Level (+100 per task)
+                const newXp = data.xp + 100;
                 const newLevel = userService.calculateLevel(newXp);
 
                 // 2. Calculate Streak
@@ -89,6 +89,28 @@ export const userService = {
             });
         } catch (error) {
             console.error("Reward transaction failed: ", error);
+            throw error;
+        }
+    },
+
+    rewardProjectCompletion: async (userId: string) => {
+        const userRef = doc(db, 'users', userId);
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw new Error("User document does not exist!");
+                const data = userDoc.data() as UserProfile;
+                const newXp = data.xp + 500; // 500 for a project
+                const newLevel = userService.calculateLevel(newXp);
+
+                transaction.update(userRef, {
+                    xp: newXp,
+                    level: newLevel,
+                    lastCompletedDate: serverTimestamp()
+                });
+            });
+        } catch (error) {
+            console.error("Project reward transaction failed: ", error);
             throw error;
         }
     }
