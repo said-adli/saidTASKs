@@ -9,7 +9,7 @@ import { TaskModal } from '@/components/tasks/TaskModal';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { Plus, LayoutDashboard, AlertCircle, Sparkles, Mic, Trophy, ArrowRight, CheckSquare, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import Image from 'next/image';
+
 import Loading from './loading';
 
 // ─── Animation Variants ─────────────────────────────────────────────
@@ -130,7 +130,7 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
           </motion.div>
         </motion.div>
 
-        {/* Dashboard Mockup */}
+        {/* ─── AI Showcase Visual ─────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -139,16 +139,130 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
         >
           {/* Glowing border */}
           <div className="absolute -inset-[1px] bg-gradient-to-b from-indigo-500/50 via-purple-500/20 to-transparent rounded-xl blur-[1px] pointer-events-none" />
-          <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-indigo-900/30">
-            <Image
-              src="/dashboard-mockup.png"
-              alt="saidTASKs Dashboard Preview"
-              width={1920}
-              height={1080}
-              className="w-full h-auto"
-              priority
-            />
-            {/* Fade-to-black at the bottom */}
+
+          {/* Canvas */}
+          <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-indigo-900/30 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 aspect-[16/9]">
+
+            {/* Ambient inner glows */}
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-[250px] h-[250px] bg-purple-500/8 rounded-full blur-[80px] pointer-events-none" />
+
+            {/* ── Animated SVG Flow Lines ─────────────────────── */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="flow1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#c084fc" stopOpacity="0.1" />
+                </linearGradient>
+                <linearGradient id="flow2" x1="100%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#818cf8" stopOpacity="0.05" />
+                </linearGradient>
+                <linearGradient id="flow3" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#818cf8" stopOpacity="0.05" />
+                </linearGradient>
+              </defs>
+              {/* Flow line 1 – top-left to center */}
+              <path
+                d="M 5% 15% Q 25% 5%, 50% 45%"
+                fill="none" stroke="url(#flow1)" strokeWidth="1.5"
+                strokeDasharray="8 12" className="animate-flow-dash"
+              />
+              {/* Flow line 2 – top-right to center */}
+              <path
+                d="M 92% 20% Q 75% 10%, 50% 45%"
+                fill="none" stroke="url(#flow2)" strokeWidth="1.5"
+                strokeDasharray="6 14" className="animate-flow-dash"
+                style={{ animationDelay: '-4s' }}
+              />
+              {/* Flow line 3 – bottom to center */}
+              <path
+                d="M 30% 90% Q 35% 65%, 50% 50%"
+                fill="none" stroke="url(#flow3)" strokeWidth="1"
+                strokeDasharray="5 15" className="animate-flow-dash"
+                style={{ animationDelay: '-8s' }}
+              />
+            </svg>
+
+            {/* ── Central AI Core Icon ────────────────────────── */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+              {/* Pulse ring */}
+              <div className="absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full border border-indigo-400/30 animate-pulse-ring" />
+              {/* Static gradient ring */}
+              <div className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full border-2 border-transparent bg-clip-border" style={{ background: 'linear-gradient(135deg, rgba(129,140,248,0.25), rgba(192,132,252,0.15)) border-box' }} />
+              {/* Core circle */}
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 shadow-lg shadow-indigo-500/40 flex items-center justify-center">
+                <svg viewBox="0 0 40 40" className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg">
+                  <text x="50%" y="54%" textAnchor="middle" dominantBaseline="central" fill="white" fontWeight="800" fontSize="26" fontFamily="system-ui, sans-serif">S</text>
+                </svg>
+              </div>
+            </div>
+
+            {/* ── Orbital Dots ────────────────────────────────── */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0">
+              <div className="animate-orbit">
+                <div className="w-2 h-2 rounded-full bg-indigo-400/60 shadow-sm shadow-indigo-400/40" />
+              </div>
+            </div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0">
+              <div className="animate-orbit-slow">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50" />
+              </div>
+            </div>
+
+            {/* ── Floating Glassmorphism Cards ────────────────── */}
+            {/* Card 1 – top-left */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.6 }}
+              className="animate-float absolute top-[12%] left-[6%] sm:left-[10%] px-4 py-2.5 rounded-lg bg-white/[0.07] backdrop-blur-md border border-white/10 shadow-lg shadow-black/20"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center">
+                  <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5 6.5-8" /></svg>
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-white/80">Add daily task ✓</span>
+              </div>
+            </motion.div>
+
+            {/* Card 2 – top-right */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.5, duration: 0.6 }}
+              className="animate-float-delayed absolute top-[18%] right-[6%] sm:right-[10%] px-4 py-2.5 rounded-lg bg-white/[0.07] backdrop-blur-md border border-white/10 shadow-lg shadow-black/20"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                  <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M8 3v8M4 7l4-4 4 4" /></svg>
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-white/80">+50 XP earned</span>
+              </div>
+            </motion.div>
+
+            {/* Card 3 – bottom-center */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.8, duration: 0.6 }}
+              className="animate-float absolute bottom-[14%] left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-lg bg-white/[0.07] backdrop-blur-md border border-white/10 shadow-lg shadow-black/20"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
+                  <Sparkles size={10} className="text-white" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-white/80">Breaking down project...</span>
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Bottom fade */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none" />
           </div>
         </motion.div>
