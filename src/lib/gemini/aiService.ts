@@ -20,7 +20,7 @@ export const aiService = {
         try {
             const ai = getGenAI();
             // standard gemini 1.5 flash for fast text generation
-            const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = ai.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
             const prompt = `
         You are an expert productivity assistant. Your job is to break down a complex task into smaller, highly actionable sub-tasks.
@@ -53,7 +53,7 @@ export const aiService = {
     categorizeTask: async (taskTitle: string): Promise<{ category: string, icon: string } | null> => {
         try {
             const ai = getGenAI();
-            const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = ai.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
             const prompt = `
         You are an expert productivity categorization engine. 

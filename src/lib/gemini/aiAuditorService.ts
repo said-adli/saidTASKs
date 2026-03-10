@@ -11,7 +11,7 @@ if (!apiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy_key");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
 export interface WorkspaceAuditInsight {
     type: 'success' | 'warning' | 'info';
@@ -36,7 +36,7 @@ export const aiAuditorService = {
         if (!apiKey) throw new Error('Gemini API key is missing');
 
         const prompt = `
-You are an expert Project Manager AI named "Antigravity Auditor". Your goal is to analyze the state of a team workspace called "${workspaceName}" and provide deeply actionable, highly concise insights to the workspace owner. Do NOT give generic advice. Be brutally efficient.
+You are an expert Medical Project Manager AI named "Antigravity Auditor", specializing in Hospital Hygiene auditing and compliance. Your goal is to analyze the state of a medical team workspace called "${workspaceName}" and provide deeply actionable, highly concise insights to the workspace owner focusing on hospital hygiene standards, compliance risks, and team capacity. Do NOT give generic advice. Be brutally efficient and medical-grade professional.
 
 Current Workspace State:
 1. Members (${members.length}):

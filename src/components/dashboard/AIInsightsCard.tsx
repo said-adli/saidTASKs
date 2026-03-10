@@ -116,7 +116,7 @@ export function AIInsightsCard() {
                 {isLoading && insights.length === 0 ? (
                     <div className="flex items-center gap-3 text-sm text-indigo-600/80 dark:text-indigo-400/80 font-medium animate-pulse py-2">
                         <Sparkles size={16} className="animate-spin-slow" />
-                        Analyzing workspace health and capacity...
+                        Auditor is thinking deeply...
                     </div>
                 ) : error ? (
                     <div className="text-sm text-red-500 bg-red-50 dark:bg-red-500/10 p-3 rounded-lg flex items-start gap-2">
