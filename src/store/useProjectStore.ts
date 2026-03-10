@@ -17,7 +17,7 @@ interface ProjectStore {
     setActiveProjectId: (id: string | SmartListId) => void;
 
     // Optimistic CRUD
-    addProject: (userId: string, data: Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+    addProject: (workspaceId: string, userId: string, data: Omit<Project, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     updateProject: (projectId: string, data: Partial<Omit<Project, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
     deleteProject: (projectId: string) => Promise<void>;
 }
@@ -33,11 +33,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     setError: (error) => set({ error, loading: false }),
     setActiveProjectId: (id) => set({ activeProjectId: id }),
 
-    addProject: async (userId, data) => {
+    addProject: async (workspaceId, userId, data) => {
         const tempId = `temp_proj_${Date.now()}`;
         const newProjOptimistic = {
             ...data,
             id: tempId,
+            workspaceId,
             userId,
             createdAt: null as any,
             updatedAt: null as any
@@ -48,7 +49,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         }));
 
         try {
-            await projectService.createProject(userId, data);
+            await projectService.createProject(workspaceId, userId, data);
         } catch (err: any) {
             set((state) => ({
                 projects: state.projects.filter(p => p.id !== tempId),

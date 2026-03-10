@@ -73,7 +73,7 @@ export function VoiceButton() {
                     const isSmartList = ['inbox', 'today', 'upcoming', 'important'].includes(activeProjectId as string);
                     const targetProjectId = !isSmartList ? (activeProjectId as string) : inboxId;
 
-                    await addTask(user.uid, {
+                    await addTask({
                         title: parsed.payload.title,
                         description: '',
                         priority: parsed.payload.priority,

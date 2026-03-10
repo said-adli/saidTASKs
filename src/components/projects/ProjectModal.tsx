@@ -37,7 +37,7 @@ export function ProjectModal({ isOpen, onClose }: ProjectModalProps) {
 
         try {
             setIsSubmitting(true);
-            await addProject(user.uid, {
+            await addProject({
                 name: name.trim(),
                 color,
                 icon: 'folder', // Standard icon for now

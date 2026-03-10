@@ -14,7 +14,7 @@ interface TaskStore {
     setError: (error: string | null) => void;
 
     // Optimistic CRUD Wrappers
-    addTask: (userId: string, data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+    addTask: (workspaceId: string, userId: string, data: Omit<Task, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     updateTask: (taskId: string, data: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) => Promise<void>;
     deleteTask: (taskId: string) => Promise<void>;
     toggleTaskStatus: (taskId: string, currentStatus: TaskStatus) => Promise<void>;
@@ -63,12 +63,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     setLoading: (loading) => set({ loading }),
     setError: (error) => set({ error, loading: false }),
 
-    addTask: async (userId, data) => {
+    addTask: async (workspaceId, userId, data) => {
         // Generate a temporary ID for optimistic update
         const tempId = `temp_${Date.now()}`;
         const newTaskOptimistic = {
             ...data,
             id: tempId,
+            workspaceId,
             userId,
             createdAt: null as any, // Won't render Date immediately 
             updatedAt: null as any
@@ -81,7 +82,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
         try {
             // It will be synced via Firebase onSnapshot automatically
-            const createdTask = await taskService.createTask(userId, data);
+            const createdTask = await taskService.createTask(workspaceId, userId, data);
 
             // Background AI Categorization
             if (!data.icon && data.title) {
