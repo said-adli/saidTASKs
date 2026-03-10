@@ -9,10 +9,13 @@ import {
     getDocs,
     query,
     where,
+    orderBy,
     serverTimestamp,
     Timestamp,
     arrayUnion,
-    limit
+    limit,
+    addDoc,
+    onSnapshot,
 } from 'firebase/firestore';
 
 export interface Workspace {
@@ -24,6 +27,16 @@ export interface Workspace {
     createdAt: Timestamp;
 }
 
+export interface ActivityLogEntry {
+    id: string;
+    action: 'task.created' | 'task.completed' | 'task.assigned' | 'member.joined';
+    actorId: string;
+    actorName?: string;
+    targetName?: string;
+    assigneeName?: string;
+    timestamp: Timestamp;
+}
+
 const generateJoinCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 };
@@ -32,15 +45,23 @@ export const workspaceService = {
     createWorkspace: async (data: Omit<Workspace, 'id' | 'joinCode' | 'createdAt'>) => {
         const workspacesRef = collection(db, 'workspaces');
         const newDocRef = doc(workspacesRef);
+        const joinCode = generateJoinCode();
 
         const newWorkspace: Workspace = {
             ...data,
             id: newDocRef.id,
-            joinCode: generateJoinCode(),
+            joinCode,
             createdAt: serverTimestamp() as Timestamp,
         };
 
         await setDoc(newDocRef, newWorkspace);
+
+        // Write the public joinCode lookup entry
+        await setDoc(doc(db, 'joinCodes', joinCode), {
+            workspaceId: newDocRef.id,
+            createdAt: serverTimestamp(),
+        });
+
         return newWorkspace;
     },
 
@@ -69,25 +90,59 @@ export const workspaceService = {
         await deleteDoc(workspaceRef);
     },
 
+    /**
+     * Join via the public /joinCodes lookup table (no workspace read needed).
+     */
     joinWorkspaceByCode: async (code: string, userId: string) => {
-        const q = query(collection(db, 'workspaces'), where('joinCode', '==', code.toUpperCase()), limit(1));
-        const snapshot = await getDocs(q);
+        const normalizedCode = code.trim().toUpperCase();
 
-        if (snapshot.empty) {
+        // Step 1: Public read from /joinCodes/{code}
+        const codeRef = doc(db, 'joinCodes', normalizedCode);
+        const codeSnap = await getDoc(codeRef);
+
+        if (!codeSnap.exists()) {
             throw new Error('Invalid or expired join code.');
         }
 
-        const workspaceDoc = snapshot.docs[0];
-        const workspaceRef = doc(db, 'workspaces', workspaceDoc.id);
+        const { workspaceId } = codeSnap.data() as { workspaceId: string };
 
-        if (workspaceDoc.data().memberIds.includes(userId)) {
-            return workspaceDoc.id; // Already a member
-        }
-
+        // Step 2: Self-join (security rules allow appending own uid to memberIds)
+        const workspaceRef = doc(db, 'workspaces', workspaceId);
         await updateDoc(workspaceRef, {
             memberIds: arrayUnion(userId)
         });
 
-        return workspaceDoc.id;
+        return workspaceId;
+    }
+};
+
+// --- Activity Log Service ---
+export const activityLogService = {
+    log: async (
+        workspaceId: string,
+        entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>
+    ) => {
+        try {
+            const logRef = collection(db, 'workspaces', workspaceId, 'activityLog');
+            await addDoc(logRef, {
+                ...entry,
+                timestamp: serverTimestamp(),
+            });
+        } catch (err) {
+            console.error('[ActivityLog] Failed to write:', err);
+        }
+    },
+
+    subscribe: (workspaceId: string, callback: (entries: ActivityLogEntry[]) => void) => {
+        const logRef = collection(db, 'workspaces', workspaceId, 'activityLog');
+        const q = query(logRef, orderBy('timestamp', 'desc'), limit(30));
+
+        return onSnapshot(q, (snapshot) => {
+            const entries = snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data(),
+            })) as ActivityLogEntry[];
+            callback(entries);
+        });
     }
 };

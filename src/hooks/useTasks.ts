@@ -5,6 +5,7 @@ import { useTaskStore } from '@/store/useTaskStore';
 import { useAuthStore } from '@/store/authStore';
 import { Task, taskService, TaskStatus } from '@/lib/firebase/taskService';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import { activityLogService } from '@/lib/firebase/workspaceService';
 
 export function useTasks() {
     const { user, loading: authLoading } = useAuthStore();
@@ -64,7 +65,28 @@ export function useTasks() {
     const addTask = async (data: Omit<Task, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => {
         if (!user || !activeWorkspaceId) return;
         try {
-            await taskService.createTask(activeWorkspaceId, user.uid, data);
+            const result = await taskService.createTask(activeWorkspaceId, user.uid, data);
+
+            // Log task creation
+            activityLogService.log(activeWorkspaceId, {
+                action: 'task.created',
+                actorId: user.uid,
+                actorName: user.displayName || undefined,
+                targetName: data.title,
+            });
+
+            // Log assignment if assigned
+            if (data.assigneeId && data.assigneeId !== user.uid) {
+                const { memberProfiles } = useWorkspaceStore.getState();
+                const assignee = memberProfiles[data.assigneeId];
+                activityLogService.log(activeWorkspaceId, {
+                    action: 'task.assigned',
+                    actorId: user.uid,
+                    actorName: user.displayName || undefined,
+                    targetName: data.title,
+                    assigneeName: assignee?.displayName || undefined,
+                });
+            }
         } catch (err: any) {
             setError(err.message);
         }

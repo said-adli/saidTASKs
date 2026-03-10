@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
-import { workspaceService } from '@/lib/firebase/workspaceService';
+import { workspaceService, activityLogService } from '@/lib/firebase/workspaceService';
 import toast from 'react-hot-toast';
 
 interface JoinWorkspaceModalProps {
@@ -28,6 +28,13 @@ export function JoinWorkspaceModal({ isOpen, onClose }: JoinWorkspaceModalProps)
         setIsLoading(true);
         try {
             const workspaceId = await workspaceService.joinWorkspaceByCode(code.trim(), user.uid);
+
+            // Log member.joined event
+            activityLogService.log(workspaceId, {
+                action: 'member.joined',
+                actorId: user.uid,
+                actorName: user.displayName || undefined,
+            });
 
             await fetchWorkspaces(user.uid);
             setActiveWorkspaceId(workspaceId);

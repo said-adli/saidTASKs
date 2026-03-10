@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Task, taskService, TaskStatus } from '@/lib/firebase/taskService';
 import { userService } from '@/lib/firebase/userService';
 import { aiService } from '@/lib/gemini/aiService';
+import { activityLogService } from '@/lib/firebase/workspaceService';
 
 interface TaskStore {
     tasks: Task[];
@@ -25,23 +26,24 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     error: null,
 
     setTasks: (tasks) => set((state) => {
-        // Atomic Update: Merge new snapshot tasks intelligently instead of full array replacement
+        // Atomic Update: Merge new snapshot tasks with shallow field comparison
         const oldTasksMap = new Map(state.tasks.map(t => [t.id, t]));
 
         const mergedTasks = tasks.map(newTask => {
             const oldTask = oldTasksMap.get(newTask.id);
 
-            // If task exists and hasn't fundamentally changed, preserve the exact old reference 
-            // to avoid React throwing away the DOM node (UI flicker)
-            if (oldTask && JSON.stringify(oldTask) === JSON.stringify(newTask)) {
-                return oldTask;
-            }
-
-            // Reconcile optimistic toggles: if we just checked it off locally but snapshot is stale
-            if (oldTask && oldTask.status !== newTask.status) {
-                // Prefer the local status if it was updated very recently (optimistic override)
-                // For a robust system we'd check timestamps, but since snapshot updates are quick:
-                // We'll let Firestore win to ensure truth, but the objects themselves won't recreate whole lists.
+            // Shallow field comparator: check key fields instead of JSON.stringify
+            if (oldTask &&
+                oldTask.title === newTask.title &&
+                oldTask.status === newTask.status &&
+                oldTask.priority === newTask.priority &&
+                oldTask.assigneeId === newTask.assigneeId &&
+                oldTask.projectId === newTask.projectId &&
+                oldTask.description === newTask.description &&
+                oldTask.dueDate?.seconds === newTask.dueDate?.seconds &&
+                oldTask.icon === newTask.icon
+            ) {
+                return oldTask; // Preserve reference — no re-render
             }
 
             return newTask;
@@ -111,9 +113,22 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             await taskService.updateTask(taskId, data);
 
             // Trigger Gamification if checking a task off
+            // XP goes to the ASSIGNEE if one exists, otherwise the creator
             if (data.status === 'completed') {
                 const task = get().tasks.find(t => t.id === taskId);
-                if (task) await userService.rewardTaskCompletion(task.userId);
+                if (task) {
+                    const rewardUserId = task.assigneeId || task.userId;
+                    await userService.rewardTaskCompletion(rewardUserId);
+
+                    // Log to workspace activity feed
+                    if (task.workspaceId) {
+                        activityLogService.log(task.workspaceId, {
+                            action: 'task.completed',
+                            actorId: task.userId,
+                            targetName: task.title,
+                        });
+                    }
+                }
             }
         } catch (err: any) {
             // Rollback
@@ -151,9 +166,19 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
             // We run the firebase call seamlessly in background without awaiting before UI reaction
             taskService.toggleTaskStatus(taskId, currentStatus, taskObj).then(() => {
-                // Reward if turning TO completed
+                // XP goes to the ASSIGNEE if one exists, otherwise the creator
                 if (newStatus === 'completed' && taskObj) {
-                    userService.rewardTaskCompletion(taskObj.userId).catch(console.error);
+                    const rewardUserId = taskObj.assigneeId || taskObj.userId;
+                    userService.rewardTaskCompletion(rewardUserId).catch(console.error);
+
+                    // Log to activity feed
+                    if (taskObj.workspaceId) {
+                        activityLogService.log(taskObj.workspaceId, {
+                            action: 'task.completed',
+                            actorId: taskObj.userId,
+                            targetName: taskObj.title,
+                        });
+                    }
                 }
             }).catch((err) => {
                 throw err;

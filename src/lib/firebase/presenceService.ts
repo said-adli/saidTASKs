@@ -25,7 +25,7 @@ export const presenceService = {
             console.error('[Presence] Failed to go online:', err);
         }
 
-        // Heartbeat every 60s to keep "online" status fresh
+        // Heartbeat every 120s to keep "online" status fresh (throttled)
         if (presenceService._intervalId) {
             clearInterval(presenceService._intervalId);
         }
@@ -36,7 +36,7 @@ export const presenceService = {
                     lastSeen: serverTimestamp(),
                 }, { merge: true });
             } catch { /* silent */ }
-        }, 60_000);
+        }, 120_000);
     },
 
     goOffline: async (userId: string) => {

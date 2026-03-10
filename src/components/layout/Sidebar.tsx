@@ -14,6 +14,7 @@ import { TagModal } from '@/components/tags/TagModal';
 import { Confetti } from '@/components/ui/Confetti';
 import { WorkspaceSwitcher } from '@/components/workspaces/WorkspaceSwitcher';
 import { WorkspaceMembers } from '@/components/workspaces/WorkspaceMembers';
+import { ActivityFeed } from '@/components/workspaces/ActivityFeed';
 import { motion } from 'framer-motion';
 
 const topNavItems = [
@@ -230,6 +231,12 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
                         </div>
                     </div>
                 )}
+
+                {/* Activity Feed */}
+                <div className="space-y-1 pb-4 border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2">
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-3 mb-2">Activity</h3>
+                    <ActivityFeed />
+                </div>
             </div>
 
             <ProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} />
