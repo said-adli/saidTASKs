@@ -11,7 +11,7 @@ if (!apiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy_key");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
 export interface WorkspaceAuditInsight {
     type: 'success' | 'warning' | 'info';
