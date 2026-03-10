@@ -3,12 +3,13 @@ import { db } from '@/lib/firebase/config';
 import { useTagStore } from '@/store/useTagStore';
 import { useAuthStore } from '@/store/authStore';
 import { tagService, Tag } from '@/lib/firebase/tagService';
-import { useRef, useEffect } from 'react';
+import { useEffect } from 'react';
+
+let globalDefaultTagChecked = false;
 
 export function useTags() {
     const { tags, loading, error, setTags, setLoading, setError } = useTagStore();
     const { user, loading: authLoading } = useAuthStore();
-    const defaultTagChecked = useRef(false);
 
     useEffect(() => {
         if (authLoading) return;
@@ -19,9 +20,9 @@ export function useTags() {
             return;
         }
 
-        if (!defaultTagChecked.current) {
+        if (!globalDefaultTagChecked) {
             tagService.ensureDefaultTagExists(user.uid).catch(console.error);
-            defaultTagChecked.current = true;
+            globalDefaultTagChecked = true;
         }
 
         const tagsQuery = query(
@@ -32,10 +33,19 @@ export function useTags() {
         setLoading(true);
 
         const unsubscribe = onSnapshot(tagsQuery, (snapshot) => {
-            const fetchedTags = snapshot.docs.map(doc => ({
+            let fetchedTags = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             })) as Tag[];
+
+            // Deduplicate by name (in case multiple were created previously)
+            const uniqueTags = new Map<string, Tag>();
+            fetchedTags.forEach(tag => {
+                if (!uniqueTags.has(tag.name.toLowerCase())) {
+                    uniqueTags.set(tag.name.toLowerCase(), tag);
+                }
+            });
+            fetchedTags = Array.from(uniqueTags.values());
 
             // Sort by name client side
             fetchedTags.sort((a, b) => a.name.localeCompare(b.name));

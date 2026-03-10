@@ -39,13 +39,17 @@ export function useTasks() {
         const unsubscribe = onSnapshot(
             q,
             (snapshot) => {
-                const fetchedTasks = snapshot.docs.map((doc) => ({
-                    ...doc.data(),
-                    id: doc.id,
-                })) as Task[];
+                const fetchedTasks = snapshot.docs
+                    .map((doc) => ({
+                        ...doc.data(),
+                        id: doc.id,
+                    })) as Task[];
+
+                // Filter out bad missing-title tasks from testing
+                const validTasks = fetchedTasks.filter(t => t.title && t.title.trim() !== '');
 
                 // This will seamlessly overwrite temporary optimistic UI tasks
-                setTasks(fetchedTasks);
+                setTasks(validTasks);
             },
             (err) => {
                 setError(err.message);

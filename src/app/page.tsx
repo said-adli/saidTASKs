@@ -382,6 +382,21 @@ function Dashboard() {
     return task.projectId === activeProjectId;
   });
 
+  // Gamification Quests Logic
+  const todayTasks = tasks.filter(t => {
+    if (!t.dueDate) return false;
+    const due = (t.dueDate as any).toDate ? (t.dueDate as any).toDate() : new Date(((t.dueDate as any).seconds || 0) * 1000);
+    const today = new Date();
+    return due.getDate() === today.getDate() && due.getMonth() === today.getMonth() && due.getFullYear() === today.getFullYear();
+  });
+  const completedToday = todayTasks.filter(t => t.status === 'completed').length;
+  const inboxProgress = todayTasks.length === 0 ? 0 : Math.round((completedToday / todayTasks.length) * 100);
+
+  const hasSubtasks = tasks.some(t => t.subtasks && t.subtasks.length > 0);
+  const mindfulProgress = hasSubtasks ? 100 : 0;
+
+  const streakProgress = profile ? Math.min(Math.round((profile.currentStreak / 3) * 100), 100) : 0;
+
   const activeTasks = filteredTasks.filter(t => t.status !== 'completed');
   const completedTasks = filteredTasks.filter(t => t.status === 'completed');
 
@@ -459,7 +474,7 @@ function Dashboard() {
                 </div>
               ) : (
                 <div className="p-8 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400">
-                  <p>No active tasks. You&apos;re all caught up!</p>
+                  <p>No tasks found. Time to add something new!</p>
                 </div>
               )}
             </section>
@@ -491,31 +506,31 @@ function Dashboard() {
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Clear the Inbox</span>
                   <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded-full">+200 XP</span>
                 </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">Complete all daily tasks without rescheduling.</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Complete all {todayTasks.length} tasks scheduled for today.</p>
                 <div className="w-full bg-orange-200/50 dark:bg-orange-900/30 h-1.5 rounded-full mt-1">
-                  <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: '30%' }}></div>
+                  <div className="bg-orange-500 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${inboxProgress}%` }}></div>
                 </div>
               </div>
 
-              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900/40 dark:bg-indigo-500/10 cursor-default">
+              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-indigo-200 bg-indigo-50 dark:border-indigo-900/40 dark:bg-indigo-500/10 cursor-default hover:border-indigo-300 transition-colors">
                 <div className="flex justify-between items-start">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Mindful Planner</span>
                   <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full">+50 XP</span>
                 </div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Break down at least one task using AI.</p>
                 <div className="w-full bg-indigo-200/50 dark:bg-indigo-900/30 h-1.5 rounded-full mt-1">
-                  <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '0%' }}></div>
+                  <div className="bg-indigo-500 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${mindfulProgress}%` }}></div>
                 </div>
               </div>
 
-              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-500/10 cursor-default">
+              <div className="group flex flex-col gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-500/10 cursor-default hover:border-emerald-300 transition-colors">
                 <div className="flex justify-between items-start">
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Streak Saver</span>
                   <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">+100 XP</span>
                 </div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Log in and complete 1 task for 3 days in a row.</p>
                 <div className="w-full bg-emerald-200/50 dark:bg-emerald-900/30 h-1.5 rounded-full mt-1">
-                  <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '66%' }}></div>
+                  <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${streakProgress}%` }}></div>
                 </div>
               </div>
             </div>
