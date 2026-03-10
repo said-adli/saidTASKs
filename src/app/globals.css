@@ -5,13 +5,23 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --popover: #18181b;
+    --popover-foreground: #ededed;
   }
+}
+
+/* Support dark mode via .dark class (Tailwind darkMode: 'class') */
+.dark {
+  --popover: #18181b;
+  --popover-foreground: #ededed;
 }
 
 body {

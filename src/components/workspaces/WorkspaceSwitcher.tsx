@@ -61,7 +61,7 @@ export function WorkspaceSwitcher() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform group-hover:scale-110" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[240px] p-0 shadow-lg border-zinc-200 dark:border-zinc-800">
+                <PopoverContent className="w-[240px] p-0 z-[200] bg-white dark:bg-zinc-900 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                     <Command>
                         <CommandList>
                             <CommandInput placeholder="Search workspace..." />
