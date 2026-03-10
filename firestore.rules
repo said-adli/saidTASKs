@@ -6,7 +6,9 @@ service cloud.firestore {
     // 1. Workspace Membership Check
     // --------------------------------------------------------------------------
     function isWorkspaceMember(workspaceId) {
-      return request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.memberIds;
+      return workspaceId != null && 
+             exists(/databases/$(database)/documents/workspaces/$(workspaceId)) &&
+             request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.memberIds;
     }
 
     // --------------------------------------------------------------------------
@@ -66,18 +68,36 @@ service cloud.firestore {
     // 4. Tasks, Projects, Tags (Secured by Workspace Membership)
     // --------------------------------------------------------------------------
     match /tasks/{taskId} {
-      allow read, update, delete: if request.auth != null && isWorkspaceMember(resource.data.workspaceId);
-      allow create: if request.auth != null && isWorkspaceMember(request.resource.data.workspaceId);
+      allow read, update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(resource.data.workspaceId)
+      );
+      allow create: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(request.resource.data.workspaceId)
+      );
     }
     
     match /projects/{projectId} {
-      allow read, update, delete: if request.auth != null && isWorkspaceMember(resource.data.workspaceId);
-      allow create: if request.auth != null && isWorkspaceMember(request.resource.data.workspaceId);
+      allow read, update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(resource.data.workspaceId)
+      );
+      allow create: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(request.resource.data.workspaceId)
+      );
     }
     
     match /tags/{tagId} {
-      allow read, update, delete: if request.auth != null && isWorkspaceMember(resource.data.workspaceId);
-      allow create: if request.auth != null && isWorkspaceMember(request.resource.data.workspaceId);
+      allow read, update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(resource.data.workspaceId)
+      );
+      allow create: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid || 
+        isWorkspaceMember(request.resource.data.workspaceId)
+      );
     }
   }
 }
