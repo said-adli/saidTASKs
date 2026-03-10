@@ -87,7 +87,7 @@ export default function KanbanBoard() {
     if (!user) {
         return (
             <div className="flex flex-col items-center justify-center h-full w-full mt-20 space-y-4">
-                <h1 className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">Welcome to ProductivityOS</h1>
+                <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Welcome to saidTASKs</h1>
                 <p className="text-zinc-500 dark:text-zinc-400 text-lg">Please login to access your board.</p>
             </div>
         );

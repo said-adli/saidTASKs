@@ -48,9 +48,11 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
     return (
         <aside className="w-64 border-r bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 flex flex-col h-full shrink-0">
             <div className="h-20 flex flex-col justify-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2 shrink-0">
-                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-lg">
-                    <CheckSquare size={24} />
-                    <span>ProductivityOS</span>
+                <div className="flex items-center gap-2">
+                    <CheckSquare size={24} className="text-indigo-500" />
+                    <span className="font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 text-xl">
+                        saidTASKs
+                    </span>
                 </div>
                 {/* Gamification Mini Progress Bar */}
                 {profile && (

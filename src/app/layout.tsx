@@ -19,7 +19,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ProductivityOS",
+  title: "saidTASKs",
   description: "A premium productivity and task management app",
 };
 
