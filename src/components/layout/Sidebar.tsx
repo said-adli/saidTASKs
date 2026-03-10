@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Folder, Kanban, Calendar, BarChart2, CheckSquare, Inbox, Calendar as CalendarIcon, Star, Plus } from 'lucide-react';
+import { LayoutDashboard, Folder, Kanban, Calendar, BarChart2, CheckSquare, Inbox, Calendar as CalendarIcon, Star, Plus, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProjects } from '@/hooks/useProjects';
 import { useTags } from '@/hooks/useTags';
@@ -12,6 +12,9 @@ import { useState, useEffect } from 'react';
 import { ProjectModal } from '@/components/projects/ProjectModal';
 import { TagModal } from '@/components/tags/TagModal';
 import { Confetti } from '@/components/ui/Confetti';
+import { WorkspaceSwitcher } from '@/components/workspaces/WorkspaceSwitcher';
+import { WorkspaceMembers } from '@/components/workspaces/WorkspaceMembers';
+import { motion } from 'framer-motion';
 
 const topNavItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -25,6 +28,7 @@ const smartLists = [
     { id: 'today', name: 'Today', icon: CalendarIcon },
     { id: 'upcoming', name: 'Upcoming', icon: CalendarIcon },
     { id: 'important', name: 'Important', icon: Star },
+    { id: 'assigned-to-me', name: 'Assigned to Me', icon: UserCheck },
 ];
 
 export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => void }) {
@@ -58,16 +62,19 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
     return (
         <aside className="w-64 border-r bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 flex flex-col h-full shrink-0">
             <Confetti trigger={levelUpTrigger} />
-            <div className="h-20 flex flex-col justify-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2 shrink-0">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col justify-center px-4 pt-4 pb-2 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10 relative">
+                <div className="flex items-center gap-2 px-2">
                     <CheckSquare size={24} className="text-indigo-500" />
                     <span className="font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 text-xl">
                         saidTASKs
                     </span>
                 </div>
+
+                <WorkspaceSwitcher />
+
                 {/* Gamification Mini Progress Bar */}
                 {profile && (
-                    <div className="w-full space-y-1 group">
+                    <div className="w-full space-y-1 group px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                         <div className="flex items-center justify-between text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
                             <span>Lvl {currentLevel}</span>
                             <span className="flex items-center gap-1"><Star size={10} className="text-orange-500" /> {profile.currentStreak}</span>
@@ -227,6 +234,6 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
 
             <ProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} />
             <TagModal isOpen={isTagModalOpen} onClose={() => setIsTagModalOpen(false)} />
-        </aside>
+        </aside >
     );
 }

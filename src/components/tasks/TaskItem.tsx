@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { useTasks } from '@/hooks/useTasks';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { useWorkspaceStore } from '@/store/workspaceStore';
+import { useAuthStore } from '@/store/authStore';
 
 interface TaskItemProps {
     task: Task;
@@ -18,7 +20,11 @@ const priorityColors: Record<TaskPriority, string> = {
 
 export function TaskItem({ task }: TaskItemProps) {
     const { toggleTaskStatus, deleteTask } = useTasks();
+    const { memberProfiles } = useWorkspaceStore();
+    const { user } = useAuthStore();
     const isCompleted = task.status === 'completed';
+
+    const assignee = task.assigneeId ? memberProfiles[task.assigneeId] : null;
 
     const handleDelete = async () => {
         try {
@@ -66,7 +72,15 @@ export function TaskItem({ task }: TaskItemProps) {
 
             {/* Status Toggle Header */}
             <button
-                onClick={() => toggleTaskStatus(task.id, task.status)}
+                onClick={() => {
+                    // Permission guard: only creator or assignee can toggle completion
+                    const canToggle = task.userId === user?.uid || task.assigneeId === user?.uid || !task.assigneeId;
+                    if (!canToggle) {
+                        toast.error('Only the creator or assignee can mark this task as completed.');
+                        return;
+                    }
+                    toggleTaskStatus(task.id, task.status);
+                }}
                 className="mt-1 flex-shrink-0 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
                 {isCompleted ? (
@@ -90,6 +104,20 @@ export function TaskItem({ task }: TaskItemProps) {
                         <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize font-medium flex-shrink-0", priorityColors[task.priority])}>
                             {task.priority}
                         </span>
+                        {assignee && (
+                            <div
+                                className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center overflow-hidden shrink-0 border border-white dark:border-zinc-900 shadow-sm ml-1"
+                                title={`Assigned to ${assignee.displayName || 'User'}`}
+                            >
+                                {assignee.photoURL ? (
+                                    <img src={assignee.photoURL} alt={assignee.displayName || ''} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                                        {assignee.displayName ? assignee.displayName.charAt(0).toUpperCase() : 'U'}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                         <div className="flex items-center ml-2 border-l border-zinc-200 dark:border-zinc-800 pl-2">
                             <button
                                 onClick={() => toast('Edit feature coming soon!', { icon: '✏️' })}

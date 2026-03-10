@@ -15,6 +15,7 @@ import {
 
 export interface Project {
     id: string;
+    workspaceId: string;
     name: string;
     color: string;
     icon: string;
@@ -25,13 +26,14 @@ export interface Project {
 }
 
 export const projectService = {
-    createProject: async (userId: string, data: Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    createProject: async (workspaceId: string, userId: string, data: Omit<Project, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => {
         const projectsRef = collection(db, 'projects');
         const newDocRef = doc(projectsRef);
 
         const newProject: Project = {
             ...data,
             id: newDocRef.id,
+            workspaceId,
             userId,
             createdAt: serverTimestamp() as Timestamp,
             updatedAt: serverTimestamp() as Timestamp,
@@ -56,12 +58,12 @@ export const projectService = {
         await deleteDoc(projectRef);
     },
 
-    ensureInboxExists: async (userId: string) => {
-        const q = query(collection(db, 'projects'), where('userId', '==', userId), where('isDefault', '==', true));
+    ensureInboxExists: async (workspaceId: string, userId: string) => {
+        const q = query(collection(db, 'projects'), where('workspaceId', '==', workspaceId), where('userId', '==', userId), where('isDefault', '==', true));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
-            return await projectService.createProject(userId, {
+            return await projectService.createProject(workspaceId, userId, {
                 name: 'Inbox',
                 color: '#6366f1', // Indigo 500
                 icon: 'inbox',

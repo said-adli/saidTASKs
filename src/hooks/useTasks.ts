@@ -3,10 +3,12 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '@/lib/firebase/config';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useAuthStore } from '@/store/authStore';
-import { Task } from '@/lib/firebase/taskService';
+import { Task, taskService, TaskStatus } from '@/lib/firebase/taskService';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 
 export function useTasks() {
     const { user, loading: authLoading } = useAuthStore();
+    const { activeWorkspaceId } = useWorkspaceStore();
     const {
         tasks,
         loading,
@@ -14,7 +16,7 @@ export function useTasks() {
         setTasks,
         setLoading,
         setError,
-        addTask,
+        // addTask, // Removed from destructuring as it's now a local function
         updateTask,
         deleteTask,
         toggleTaskStatus
@@ -23,7 +25,7 @@ export function useTasks() {
     useEffect(() => {
         if (authLoading) return;
 
-        if (!user) {
+        if (!user || !activeWorkspaceId) {
             setTasks([]);
             return;
         }
@@ -32,7 +34,7 @@ export function useTasks() {
 
         const q = query(
             collection(db, 'tasks'),
-            where('userId', '==', user.uid),
+            where('workspaceId', '==', activeWorkspaceId), // Pivot: Query by Workspace
             orderBy('createdAt', 'desc')
         );
 
@@ -57,7 +59,16 @@ export function useTasks() {
         );
 
         return () => unsubscribe();
-    }, [user, authLoading, setTasks, setLoading, setError]);
+    }, [user, authLoading, activeWorkspaceId, setTasks, setLoading, setError]);
+
+    const addTask = async (data: Omit<Task, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+        if (!user || !activeWorkspaceId) return;
+        try {
+            await taskService.createTask(activeWorkspaceId, user.uid, data);
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
 
     return {
         tasks,

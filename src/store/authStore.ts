@@ -8,6 +8,9 @@ import {
     onAuthStateChanged
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { migrationService } from '@/lib/firebase/migrationService';
+import { presenceService } from '@/lib/firebase/presenceService';
+import { useWorkspaceStore } from './workspaceStore';
 
 interface UserProfile {
     xp: number;
@@ -87,6 +90,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                         };
                     }
 
+                    // --- Workspace Migration & Initialization ---
+                    const workspaceId = await migrationService.migrateUserToWorkspace(user.uid);
+                    const wsStore = useWorkspaceStore.getState();
+
+                    if (!wsStore.activeWorkspaceId) {
+                        wsStore.setActiveWorkspaceId(workspaceId);
+                    }
+
+                    await wsStore.fetchWorkspaces(user.uid);
+
+                    // --- Presence & Members Subscription ---
+                    presenceService.init(user.uid);
+                    const activeWs = wsStore.workspaces.find(w => w.id === wsStore.activeWorkspaceId);
+                    if (activeWs?.memberIds) {
+                        wsStore.subscribeToMembers(activeWs.memberIds);
+                    }
+
                     set({ user, profile: profileData, loading: false });
                 } catch (error: any) {
                     console.error("Error fetching user data:", error);
@@ -94,6 +114,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                 }
             } else {
                 // User is logged out
+                presenceService.goOffline(get().user?.uid || '');
+                useWorkspaceStore.getState().unsubscribeFromMembers();
                 set({ user: null, profile: null, loading: false });
             }
         });

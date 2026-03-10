@@ -76,12 +76,16 @@ export default function KanbanBoard() {
                 const inbox = projects.find(p => p.isDefault);
                 return inbox ? task.projectId === inbox.id : true;
             }
+            if (activeProjectId === 'assigned-to-me') {
+                return task.assigneeId === user?.uid;
+            }
             return task.projectId === activeProjectId;
         });
-    }, [tasks, activeProjectId, projects]);
+    }, [tasks, activeProjectId, projects, user]);
 
-    const headerTitle = ['today', 'upcoming', 'important', 'inbox'].includes(activeProjectId as string)
-        ? (activeProjectId as string).charAt(0).toUpperCase() + (activeProjectId as string).slice(1)
+    const headerTitle = ['today', 'upcoming', 'important', 'inbox', 'assigned-to-me'].includes(activeProjectId as string)
+        ? activeProjectId === 'assigned-to-me' ? 'Assigned to Me'
+            : (activeProjectId as string).charAt(0).toUpperCase() + (activeProjectId as string).slice(1)
         : projects.find(p => p.id === activeProjectId)?.name || 'Board';
 
     if (!user) {

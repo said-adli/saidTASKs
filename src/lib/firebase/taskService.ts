@@ -30,6 +30,7 @@ export interface Attachment {
 
 export interface Task {
     id: string;
+    workspaceId: string;
     title: string;
     description: string; // Markdown supported
     priority: TaskPriority;
@@ -44,10 +45,11 @@ export interface Task {
     attachments?: Attachment[];
     recurringInterval?: RecurringInterval | null;
     icon?: string;
+    assigneeId?: string | null;
 }
 
 export const taskService = {
-    createTask: async (userId: string, data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    createTask: async (workspaceId: string, userId: string, data: Omit<Task, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => {
         if (!data.title || data.title.trim() === '') {
             throw new Error('Task title cannot be empty or solely whitespace.');
         }
@@ -58,6 +60,7 @@ export const taskService = {
         const newTask: Task = {
             ...data,
             id: newDocRef.id,
+            workspaceId,
             userId,
             createdAt: serverTimestamp() as Timestamp,
             updatedAt: serverTimestamp() as Timestamp,
@@ -96,7 +99,7 @@ export const taskService = {
             // Subtasks should be reset to incomplete for the cloned task
             const resetSubtasks = taskData.subtasks?.map(st => ({ ...st, isCompleted: false })) || [];
 
-            await taskService.createTask(task.userId, {
+            await taskService.createTask(task.workspaceId, task.userId, {
                 ...taskData,
                 status: 'todo',
                 dueDate: Timestamp.fromDate(nextDueDate),

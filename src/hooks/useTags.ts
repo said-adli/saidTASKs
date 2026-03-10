@@ -4,30 +4,32 @@ import { useTagStore } from '@/store/useTagStore';
 import { useAuthStore } from '@/store/authStore';
 import { tagService, Tag } from '@/lib/firebase/tagService';
 import { useEffect } from 'react';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 
 let globalDefaultTagChecked = false;
 
 export function useTags() {
     const { tags, loading, error, setTags, setLoading, setError } = useTagStore();
     const { user, loading: authLoading } = useAuthStore();
+    const { activeWorkspaceId } = useWorkspaceStore();
 
     useEffect(() => {
         if (authLoading) return;
 
-        if (!user) {
+        if (!user || !activeWorkspaceId) {
             setTags([]);
             setLoading(false);
             return;
         }
 
         if (!globalDefaultTagChecked) {
-            tagService.ensureDefaultTagExists(user.uid).catch(console.error);
+            tagService.ensureDefaultTagExists(activeWorkspaceId, user.uid).catch(console.error);
             globalDefaultTagChecked = true;
         }
 
         const tagsQuery = query(
             collection(db, 'tags'),
-            where('userId', '==', user.uid)
+            where('workspaceId', '==', activeWorkspaceId) // Pivot: Query by Workspace
         );
 
         setLoading(true);
@@ -60,11 +62,11 @@ export function useTags() {
         });
 
         return () => unsubscribe();
-    }, [user, authLoading, setTags, setLoading, setError]);
+    }, [user, authLoading, activeWorkspaceId, setTags, setLoading, setError]);
 
-    const addTag = async (data: Omit<Tag, 'id' | 'userId' | 'createdAt'>) => {
-        if (!user) return;
-        return tagService.createTag(user.uid, data);
+    const addTag = async (data: Omit<Tag, 'id' | 'workspaceId' | 'userId' | 'createdAt'>) => {
+        if (!user || !activeWorkspaceId) return;
+        return tagService.createTag(activeWorkspaceId, user.uid, data);
     };
 
     const updateTag = async (tagId: string, data: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>) => {

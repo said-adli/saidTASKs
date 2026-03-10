@@ -14,6 +14,7 @@ import {
 
 export interface Tag {
     id: string;
+    workspaceId: string;
     name: string;
     color: string;
     userId: string;
@@ -21,13 +22,14 @@ export interface Tag {
 }
 
 export const tagService = {
-    createTag: async (userId: string, data: Omit<Tag, 'id' | 'userId' | 'createdAt'>) => {
+    createTag: async (workspaceId: string, userId: string, data: Omit<Tag, 'id' | 'workspaceId' | 'userId' | 'createdAt'>) => {
         const tagsRef = collection(db, 'tags');
         const newDocRef = doc(tagsRef);
 
         const newTag: Tag = {
             ...data,
             id: newDocRef.id,
+            workspaceId,
             userId,
             createdAt: serverTimestamp() as Timestamp,
         };
@@ -46,11 +48,11 @@ export const tagService = {
         await deleteDoc(tagRef);
     },
 
-    ensureDefaultTagExists: async (userId: string) => {
-        const tagsQuery = query(collection(db, 'tags'), where('userId', '==', userId));
+    ensureDefaultTagExists: async (workspaceId: string, userId: string) => {
+        const tagsQuery = query(collection(db, 'tags'), where('workspaceId', '==', workspaceId), where('userId', '==', userId));
         const tagsSnap = await getDocs(tagsQuery);
         if (tagsSnap.empty) {
-            await tagService.createTag(userId, {
+            await tagService.createTag(workspaceId, userId, {
                 name: 'General',
                 color: '#818cf8', // indigo-400
             });

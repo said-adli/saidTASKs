@@ -6,14 +6,17 @@ import Navbar from './Navbar';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
+import { useWorkspaceStore } from '@/store/workspaceStore';
+import { Loader2 } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { user, loading } = useAuthStore();
+    const { user, loading: authLoading } = useAuthStore();
+    const { loading: workspaceLoading } = useWorkspaceStore();
 
     // Auth is still initializing — render a bare container so the Splash Screen
     // from page.tsx appears without any Dashboard chrome (Sidebar/Navbar).
-    if (loading) {
+    if (authLoading) {
         return (
             <div className="flex flex-col min-h-screen w-full bg-slate-950 text-white overflow-x-hidden">
                 {children}
@@ -65,8 +68,34 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
             <div className="flex flex-col flex-1 min-w-0">
                 <Navbar onMenuClick={() => setIsMobileMenuOpen(true)} />
-                <main className="flex-1 overflow-y-auto p-6 text-zinc-900 dark:text-zinc-100">
-                    {children}
+                <main className="flex-1 overflow-y-auto p-6 text-zinc-900 dark:text-zinc-100 relative">
+                    <AnimatePresence mode="wait">
+                        {workspaceLoading ? (
+                            <motion.div
+                                key="loader"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm"
+                            >
+                                <div className="flex flex-col items-center gap-4">
+                                    <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                                    <p className="text-sm font-medium text-zinc-500 animate-pulse">Switching Workspace...</p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="content"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="h-full"
+                            >
+                                {children}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </main>
             </div>
         </div>

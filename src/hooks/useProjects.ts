@@ -4,9 +4,11 @@ import { db } from '@/lib/firebase/config';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useAuthStore } from '@/store/authStore';
 import { Project, projectService } from '@/lib/firebase/projectService';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 
 export function useProjects() {
     const { user, loading: authLoading } = useAuthStore();
+    const { activeWorkspaceId } = useWorkspaceStore();
     const {
         projects,
         loading,
@@ -16,7 +18,7 @@ export function useProjects() {
         setLoading,
         setError,
         setActiveProjectId,
-        addProject,
+        // addProject, // Local override
         updateProject,
         deleteProject
     } = useProjectStore();
@@ -26,41 +28,70 @@ export function useProjects() {
     useEffect(() => {
         if (authLoading) return;
 
-        if (!user) {
+        if (!user || !activeWorkspaceId) {
             setProjects([]);
             return;
         }
 
-        setLoading(true);
+        let unsubscribe: (() => void) | undefined;
+        let isMounted = true;
 
-        if (!inboxChecked.current) {
-            projectService.ensureInboxExists(user.uid).catch(console.error);
-            inboxChecked.current = true;
-        }
+        const fetchProjects = async () => {
+            setLoading(true);
 
-        const q = query(
-            collection(db, 'projects'),
-            where('userId', '==', user.uid),
-            orderBy('createdAt', 'asc')
-        );
-
-        const unsubscribe = onSnapshot(
-            q,
-            (snapshot) => {
-                const fetched = snapshot.docs.map((doc) => ({
-                    ...doc.data(),
-                    id: doc.id,
-                })) as Project[];
-
-                setProjects(fetched);
-            },
-            (err) => {
-                setError(err.message);
+            if (!inboxChecked.current) {
+                try {
+                    await projectService.ensureInboxExists(activeWorkspaceId, user.uid);
+                    inboxChecked.current = true;
+                } catch (err) {
+                    console.error('Failed to ensure inbox exists:', err);
+                }
             }
-        );
 
-        return () => unsubscribe();
-    }, [user, authLoading, setProjects, setLoading, setError]);
+            if (!isMounted) return;
+
+            const q = query(
+                collection(db, 'projects'),
+                where('workspaceId', '==', activeWorkspaceId), // Pivot: Query by Workspace
+                orderBy('createdAt', 'desc')
+            );
+
+            unsubscribe = onSnapshot(
+                q,
+                (snapshot) => {
+                    const fetched = snapshot.docs.map((doc) => ({
+                        ...doc.data(),
+                        id: doc.id,
+                    })) as Project[];
+
+                    setProjects(fetched);
+                    setLoading(false);
+                },
+                (err) => {
+                    setError(err.message);
+                    setLoading(false);
+                }
+            );
+        };
+
+        fetchProjects();
+
+        return () => {
+            isMounted = false;
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
+    }, [user, authLoading, activeWorkspaceId, setProjects, setLoading, setError]);
+
+    const addProject = async (data: Omit<Project, 'id' | 'workspaceId' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+        if (!user || !activeWorkspaceId) return;
+        try {
+            await projectService.createProject(activeWorkspaceId, user.uid, data);
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
 
     return {
         projects,

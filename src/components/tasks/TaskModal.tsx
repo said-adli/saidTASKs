@@ -10,10 +10,11 @@ import { useAuthStore } from '@/store/authStore';
 import { TaskPriority, SubTask, Attachment, RecurringInterval } from '@/lib/firebase/taskService';
 import { uploadToCloudinary } from '@/lib/cloudinary/uploadService';
 import { aiService } from '@/lib/gemini/aiService';
-import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat } from 'lucide-react';
+import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat, UserCircle } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -26,6 +27,8 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
     const { addTask } = useTasks();
     const { projects, activeProjectId } = useProjects();
     const { tags } = useTags();
+    const { memberProfiles } = useWorkspaceStore();
+    const members = Object.values(memberProfiles);
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -86,6 +89,7 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [recurringInterval, setRecurringInterval] = useState<RecurringInterval | ''>('');
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+    const [assigneeId, setAssigneeId] = useState<string>('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isBreakingDown, setIsBreakingDown] = useState(false);
@@ -144,7 +148,7 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
             const parsedDueDate = dueDate ? Timestamp.fromDate(new Date(dueDate)) : null;
 
             // Wait for the optimistic store update
-            await addTask(user.uid, {
+            await addTask({
                 title: title.trim(),
                 description: description.trim(),
                 priority,
@@ -154,8 +158,15 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
                 subtasks,
                 attachments,
                 tagIds: selectedTagIds,
-                recurringInterval: recurringInterval || null
+                recurringInterval: recurringInterval || null,
+                assigneeId: assigneeId || null
             } as any);
+
+            // Fire assignment toast if someone was assigned
+            if (assigneeId && assigneeId !== user.uid) {
+                const assignee = memberProfiles[assigneeId];
+                toast.success(`Assigned '${title.trim()}' to ${assignee?.displayName || 'team member'}`, { icon: '👤' });
+            }
 
             setTitle('');
             setDescription('');
@@ -165,6 +176,7 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
             setAttachments([]);
             setRecurringInterval('');
             setSelectedTagIds([]);
+            setAssigneeId('');
             setProjectId(initialProjectId);
             onClose();
 
@@ -244,17 +256,37 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
                             />
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Project</label>
-                            <select
-                                value={projectId}
-                                onChange={(e) => setProjectId(e.target.value)}
-                                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                            >
-                                {projects.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Project</label>
+                                <select
+                                    value={projectId}
+                                    onChange={(e) => setProjectId(e.target.value)}
+                                    className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                >
+                                    {projects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
+                                    <UserCircle size={14} className="text-zinc-500" /> Assign To
+                                </label>
+                                <select
+                                    value={assigneeId}
+                                    onChange={(e) => setAssigneeId(e.target.value)}
+                                    className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                >
+                                    <option value="">Unassigned</option>
+                                    {members.map(m => (
+                                        <option key={m.userId} value={m.userId}>
+                                            {m.displayName || m.email || 'User'}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
