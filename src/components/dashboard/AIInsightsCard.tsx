@@ -85,7 +85,7 @@ export function AIInsightsCard() {
                 <Sparkles size={120} />
             </div>
 
-            <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center justify-between mb-4 relative z-[1]">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white">
                         <Sparkles size={16} />
@@ -112,7 +112,7 @@ export function AIInsightsCard() {
                 </button>
             </div>
 
-            <div className="relative z-10 min-h-[60px]">
+            <div className="relative z-[1] min-h-[60px]">
                 {isLoading && insights.length === 0 ? (
                     <div className="flex items-center gap-3 text-sm text-indigo-600/80 dark:text-indigo-400/80 font-medium animate-pulse py-2">
                         <Sparkles size={16} className="animate-spin-slow" />
