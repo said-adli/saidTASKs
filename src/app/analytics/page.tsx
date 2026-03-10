@@ -13,7 +13,7 @@ interface FirebaseTimestamp {
 }
 
 export default function AnalyticsPage() {
-    const { user, profile } = useAuthStore();
+    const { user, profile, loading } = useAuthStore();
     const { tasks } = useTasks();
     const { theme } = useTheme();
     const [isMounted, setIsMounted] = useState(false);
@@ -52,6 +52,15 @@ export default function AnalyticsPage() {
         }
         return data;
     }, [tasks]);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full w-full mt-20 space-y-4 animate-pulse">
+                <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-zinc-500 dark:text-zinc-400">Loading your stats...</p>
+            </div>
+        );
+    }
 
     if (!user || !profile) {
         return (
