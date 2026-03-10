@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTasks } from '@/hooks/useTasks';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart2, Zap, Target, Star, Trophy } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
 interface FirebaseTimestamp {
@@ -16,6 +16,11 @@ export default function AnalyticsPage() {
     const { user, profile } = useAuthStore();
     const { tasks } = useTasks();
     const { theme } = useTheme();
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Generate last 7 days data
     const chartData = useMemo(() => {
@@ -125,43 +130,45 @@ export default function AnalyticsPage() {
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">Your output over the last 7 days.</p>
                 </div>
 
-                <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#71717a', fontSize: 12 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#71717a', fontSize: 12 }}
-                                allowDecimals={false}
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
-                                contentStyle={{
-                                    backgroundColor: 'rgba(24, 24, 27, 0.9)',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    color: '#fff',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                }}
-                                itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
-                            />
-                            <Bar dataKey="tasks" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                                {chartData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={entry.isToday ? '#6366f1' : (theme === 'dark' ? '#3730a3' : '#c7d2fe')}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="h-72 w-full min-h-[300px]">
+                    {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#71717a', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#71717a', fontSize: 12 }}
+                                    allowDecimals={false}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(24, 24, 27, 0.9)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        color: '#fff',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    itemStyle={{ color: '#818cf8', fontWeight: 'bold' }}
+                                />
+                                <Bar dataKey="tasks" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                                    {chartData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={entry.isToday ? '#6366f1' : (theme === 'dark' ? '#3730a3' : '#c7d2fe')}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
         </div>

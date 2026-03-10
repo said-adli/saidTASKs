@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Task } from '@/lib/firebase/taskService';
 
 export function useTasks() {
-    const { user } = useAuthStore();
+    const { user, loading: authLoading } = useAuthStore();
     const {
         tasks,
         loading,
@@ -21,6 +21,8 @@ export function useTasks() {
     } = useTaskStore();
 
     useEffect(() => {
+        if (authLoading) return;
+
         if (!user) {
             setTasks([]);
             return;
@@ -51,7 +53,7 @@ export function useTasks() {
         );
 
         return () => unsubscribe();
-    }, [user, setTasks, setLoading, setError]);
+    }, [user, authLoading, setTasks, setLoading, setError]);
 
     return {
         tasks,

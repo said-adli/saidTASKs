@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Project, projectService } from '@/lib/firebase/projectService';
 
 export function useProjects() {
-    const { user } = useAuthStore();
+    const { user, loading: authLoading } = useAuthStore();
     const {
         projects,
         loading,
@@ -24,6 +24,8 @@ export function useProjects() {
     const inboxChecked = useRef(false);
 
     useEffect(() => {
+        if (authLoading) return;
+
         if (!user) {
             setProjects([]);
             return;
@@ -58,7 +60,7 @@ export function useProjects() {
         );
 
         return () => unsubscribe();
-    }, [user, setProjects, setLoading, setError]);
+    }, [user, authLoading, setProjects, setLoading, setError]);
 
     return {
         projects,

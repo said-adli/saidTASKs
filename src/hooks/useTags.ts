@@ -1,19 +1,27 @@
-import { useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useTagStore } from '@/store/useTagStore';
 import { useAuthStore } from '@/store/authStore';
 import { tagService, Tag } from '@/lib/firebase/tagService';
+import { useRef, useEffect } from 'react';
 
 export function useTags() {
     const { tags, loading, error, setTags, setLoading, setError } = useTagStore();
-    const { user } = useAuthStore();
+    const { user, loading: authLoading } = useAuthStore();
+    const defaultTagChecked = useRef(false);
 
     useEffect(() => {
+        if (authLoading) return;
+
         if (!user) {
             setTags([]);
             setLoading(false);
             return;
+        }
+
+        if (!defaultTagChecked.current) {
+            tagService.ensureDefaultTagExists(user.uid).catch(console.error);
+            defaultTagChecked.current = true;
         }
 
         const tagsQuery = query(
@@ -42,7 +50,7 @@ export function useTags() {
         });
 
         return () => unsubscribe();
-    }, [user, setTags, setLoading, setError]);
+    }, [user, authLoading, setTags, setLoading, setError]);
 
     const addTag = async (data: Omit<Tag, 'id' | 'userId' | 'createdAt'>) => {
         if (!user) return;

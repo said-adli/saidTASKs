@@ -44,5 +44,16 @@ export const tagService = {
     deleteTag: async (tagId: string) => {
         const tagRef = doc(db, 'tags', tagId);
         await deleteDoc(tagRef);
+    },
+
+    ensureDefaultTagExists: async (userId: string) => {
+        const tagsQuery = query(collection(db, 'tags'), where('userId', '==', userId));
+        const tagsSnap = await getDocs(tagsQuery);
+        if (tagsSnap.empty) {
+            await tagService.createTag(userId, {
+                name: 'General',
+                color: '#818cf8', // indigo-400
+            });
+        }
     }
 };
