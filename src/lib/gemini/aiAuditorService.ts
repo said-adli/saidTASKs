@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, Schema, SchemaType } from "@google/generative-ai";
 import { Task } from "@/lib/firebase/taskService";
 import { UserProfile } from "@/lib/firebase/userService";
 import { ActivityLogEntry } from "@/lib/firebase/workspaceService";
-import { chatService } from "@/lib/firebase/chatService";
+import toast from "react-hot-toast";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -11,7 +11,21 @@ if (!apiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy_key");
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+// Smart Hybrid: Pro for deep analysis, Flash as high-quota fallback
+const PRO_MODEL = "gemini-2.5-pro";
+const FLASH_MODEL = "gemini-2.5-flash";
+
+/**
+ * Detect if an error is a 429 rate-limit or quota-exceeded error.
+ */
+function isRateLimitError(error: unknown): boolean {
+    if (error instanceof Error) {
+        const msg = error.message.toLowerCase();
+        return msg.includes('429') || msg.includes('resource_exhausted') || msg.includes('quota');
+    }
+    return false;
+}
 
 export interface WorkspaceAuditInsight {
     type: 'success' | 'warning' | 'info';
@@ -25,7 +39,7 @@ export interface WorkspaceAuditResult {
 
 export const aiAuditorService = {
     /**
-     * Analyze workspace state and provide actionable insights + potential chat nudges.
+     * Analyze workspace state with Pro model, auto-fallback to Flash on 429.
      */
     generateAuditorInsights: async (
         workspaceName: string,
@@ -35,40 +49,46 @@ export const aiAuditorService = {
     ): Promise<WorkspaceAuditResult> => {
         if (!apiKey) throw new Error('Gemini API key is missing');
 
-        const prompt = `
-You are an expert Medical Project Manager AI named "Antigravity Auditor", specializing in Hospital Hygiene auditing and compliance. Your goal is to analyze the state of a medical team workspace called "${workspaceName}" and provide deeply actionable, highly concise insights to the workspace owner focusing on hospital hygiene standards, compliance risks, and team capacity. Do NOT give generic advice. Be brutally efficient and medical-grade professional.
+        const memberList = members.map(m => `- ${m.displayName || 'Unknown'}`).join('\n');
+        const taskList = tasks.map(t => {
+            const assignee = members.find(m => m.userId === t.assigneeId)?.displayName || 'Unassigned';
+            const due = t.dueDate ? new Date(t.dueDate.seconds * 1000).toLocaleDateString() : 'None';
+            return `- [${t.status}] ${t.title} | P:${t.priority} | @${assignee} | Due:${due}`;
+        }).join('\n');
+        const activityList = recentActivity.slice(0, 10).map(a =>
+            `- ${a.actorName || a.actorId} ${a.action} ${a.targetName || ''}`
+        ).join('\n');
 
-Current Workspace State:
-1. Members (${members.length}):
-${members.map(m => `- ${m.displayName || 'Unknown'} (ID: ${m.userId})`).join('\n')}
+        const prompt = `You are "Antigravity Auditor", an AI specializing in Hospital Hygiene auditing. Analyze workspace "${workspaceName}":
 
-2. Active Tasks (${tasks.length}):
-${tasks.map(t => `- [${t.status}] ${t.title} | Priority: ${t.priority} | Assignee: ${members.find(m => m.userId === t.assigneeId)?.displayName || 'Unassigned'} | Due: ${t.dueDate ? new Date(t.dueDate.seconds * 1000).toDateString() : 'None'}`).join('\n')}
+Members (${members.length}):
+${memberList}
 
-3. Recent Activity (Last ${recentActivity.length} events):
-${recentActivity.map(a => `- ${a.actorName || a.actorId} ${a.action} ${a.targetName || ''}`).join('\n')}
+Tasks (${tasks.length}):
+${taskList}
 
-Analyze the load balancing, overdue risks, completed velocity, and unassigned work.
+Recent Activity (last ${Math.min(recentActivity.length, 10)}):
+${activityList}
 
-Produce a JSON output strictly conforming to the requested schema.
-`;
+Analyze: load balancing, overdue risks, completion velocity, unassigned work.
+Return JSON per schema. Be concise and actionable.`;
 
         const responseSchema: Schema = {
             type: SchemaType.OBJECT,
             properties: {
                 insights: {
                     type: SchemaType.ARRAY,
-                    description: "2-3 highly actionable, specific bullet points for the dashboard.",
+                    description: "2-3 actionable bullet points.",
                     items: {
                         type: SchemaType.OBJECT,
                         properties: {
                             type: {
                                 type: SchemaType.STRING,
-                                description: "'success' for good news, 'warning' for risks/blockers, 'info' for general state.",
+                                description: "'success', 'warning', or 'info'.",
                             },
                             message: {
                                 type: SchemaType.STRING,
-                                description: "The concise actionable text. (e.g., '3 high-priority tasks are overdue', 'Amine is overloaded with 5 active tasks')",
+                                description: "Concise actionable text.",
                             }
                         },
                         required: ["type", "message"]
@@ -76,72 +96,93 @@ Produce a JSON output strictly conforming to the requested schema.
                 },
                 chatNudge: {
                     type: SchemaType.STRING,
-                    description: "An optional, friendly but firm message to drop into the team chat if there is a major blocker or deadline risk. Leave empty string if everything is fine.",
+                    description: "Optional team chat message for major blockers. Empty string if none.",
                 }
             },
             required: ["insights"]
         };
 
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-                temperature: 0.2, // Low temperature for consistent analysis
-            }
-        });
+        const generationConfig = {
+            responseMimeType: "application/json" as const,
+            responseSchema: responseSchema,
+            temperature: 0.2,
+        };
 
-        const responseText = result.response.text();
-        return JSON.parse(responseText) as WorkspaceAuditResult;
+        const contents = [{ role: 'user' as const, parts: [{ text: prompt }] }];
+
+        // Attempt 1: Pro model (deep reasoning)
+        try {
+            const proModel = genAI.getGenerativeModel({ model: PRO_MODEL });
+            const result = await proModel.generateContent({ contents, generationConfig });
+            return JSON.parse(result.response.text()) as WorkspaceAuditResult;
+        } catch (proError) {
+            if (isRateLimitError(proError)) {
+                console.warn('[AI Auditor] Pro model rate-limited (429). Falling back to Flash...');
+                toast('⚡ Using Flash auditor for speed — Pro quota reached.', {
+                    icon: '🔄',
+                    id: 'ai-fallback-toast',
+                    duration: 4000,
+                });
+            } else {
+                // Non-429 error from Pro — still try Flash as resilience layer
+                console.error('[AI Auditor] Pro model error:', proError);
+                toast.error('Pro auditor unavailable. Retrying with Flash...', {
+                    id: 'ai-fallback-toast',
+                    duration: 3000,
+                });
+            }
+        }
+
+        // Attempt 2: Flash fallback (always available, high quota)
+        const flashModel = genAI.getGenerativeModel({ model: FLASH_MODEL });
+        const result = await flashModel.generateContent({ contents, generationConfig });
+        return JSON.parse(result.response.text()) as WorkspaceAuditResult;
     },
 
     /**
      * Magic Task Enrichment: Recommend Assignee and expand Description.
+     * Uses Flash for speed + high quota.
      */
     enrichTask: async (
         title: string,
         existingDescription: string,
         members: UserProfile[],
-        tasksHistory: Task[] // To learn who usually does what
+        tasksHistory: Task[]
     ) => {
         if (!apiKey) throw new Error('Gemini API key is missing');
 
-        // Build brief context of who does what
-        const memberTaskCounts = members.map(m => {
-            const myTasks = tasksHistory.filter(t => t.assigneeId === m.userId).map(t => t.title);
-            return `- ${m.displayName || m.userId}: usually works on [${myTasks.slice(0, 3).join(', ')}]`;
+        const memberContext = members.map(m => {
+            const recent = tasksHistory.filter(t => t.assigneeId === m.userId).map(t => t.title).slice(0, 3);
+            return `- ${m.displayName || m.userId}: [${recent.join(', ')}]`;
         }).join('\n');
 
-        const prompt = `
-You are an AI Task Delegator. A user just created a task title: "${title}".
-They left the description as: "${existingDescription}".
+        const prompt = `New task: "${title}" (current description: "${existingDescription}")
 
-Your job is to:
-1. Suggest a professional, detailed markdown description for this task, expanding on what needs to be done.
-2. Recommend the BEST Assignee from the current member pool, based on their past task titles.
+Expand with a professional markdown description and recommend the best assignee.
 
-Available Members and their typical work:
-${memberTaskCounts}
+Members & typical work:
+${memberContext}
 
-Produce JSON output STRICTLY conforming to the schema.
-`;
+Return JSON per schema.`;
 
         const responseSchema: Schema = {
             type: SchemaType.OBJECT,
             properties: {
                 suggestedDescription: {
                     type: SchemaType.STRING,
-                    description: "A professional, expanded markdown description for the task with bullet points or expected outcomes.",
+                    description: "Expanded markdown description with outcomes.",
                 },
                 recommendedAssigneeId: {
                     type: SchemaType.STRING,
-                    description: "The userId of the best member to assign this to, or null if uncertain.",
+                    description: "userId of best assignee, or empty if uncertain.",
                 }
             },
             required: ["suggestedDescription"]
         };
 
-        const result = await model.generateContent({
+        // Use Flash for enrichment — fast, high quota
+        const flashModel = genAI.getGenerativeModel({ model: FLASH_MODEL });
+        const result = await flashModel.generateContent({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
                 responseMimeType: "application/json",
@@ -150,8 +191,7 @@ Produce JSON output STRICTLY conforming to the schema.
             }
         });
 
-        const responseText = result.response.text();
-        return JSON.parse(responseText) as {
+        return JSON.parse(result.response.text()) as {
             suggestedDescription: string;
             recommendedAssigneeId: string | null;
         };

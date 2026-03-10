@@ -15,32 +15,23 @@ const getGenAI = () => {
     return genAI;
 };
 
+// Default model: Flash for high-quota, low-latency tasks
+const FAST_MODEL = "gemini-2.5-flash";
+
 export const aiService = {
     breakDownTask: async (taskTitle: string, description?: string): Promise<string[]> => {
         try {
             const ai = getGenAI();
-            // Gemini 2.5 Pro for advanced reasoning
-            const model = ai.getGenerativeModel({ model: "gemini-2.5-pro" });
+            const model = ai.getGenerativeModel({ model: FAST_MODEL });
 
-            const prompt = `
-        You are an expert productivity assistant. Your job is to break down a complex task into smaller, highly actionable sub-tasks.
-        The user wants to accomplish: "${taskTitle}"
-        ${description ? `Additional context: "${description}"` : ''}
+            const prompt = `Break down this task into 3-6 actionable sub-tasks.
+Task: "${taskTitle}"${description ? `\nContext: "${description}"` : ''}
 
-        Rules:
-        1. Return ONLY a valid JSON array of strings. 
-        2. Do not include markdown formatting like \`\`\`json.
-        3. Do not include any explanations or conversational text.
-        4. Provide 3 to 6 highly actionable, concise steps.
-        
-        Example Output:
-        ["Research necessary materials", "Draft initial outline", "Review with team"]
-      `;
+Return ONLY a JSON array of strings. No markdown, no explanation.
+Example: ["Step one","Step two","Step three"]`;
 
             const result = await model.generateContent(prompt);
             const responseText = result.response.text();
-
-            // Clean up potential markdown formatting that Gemini might forcefully include
             const cleanJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
             return JSON.parse(cleanJson) as string[];
@@ -53,20 +44,13 @@ export const aiService = {
     categorizeTask: async (taskTitle: string): Promise<{ category: string, icon: string } | null> => {
         try {
             const ai = getGenAI();
-            const model = ai.getGenerativeModel({ model: "gemini-2.5-pro" });
+            const model = ai.getGenerativeModel({ model: FAST_MODEL });
 
-            const prompt = `
-        You are an expert productivity categorization engine. 
-        Given the task title: "${taskTitle}"
-        
-        1. Determine the best category for this task (e.g., Work, Personal, Urgent, Coding, Health, Food, Finance, Learning, Chores, Setup).
-        2. Assign a single appropriate emoji icon for this task (e.g., 🍕, 💻, 🏃‍♂️, 💰, 📚, 🧹, ⚙️).
-        
-        Return ONLY a valid JSON object in this format:
-        {"category": "CategoryName", "icon": "Emoji"}
-        
-        Do not include markdown or explanations.
-        `;
+            const prompt = `Categorize this task and assign an emoji.
+Task: "${taskTitle}"
+
+Return ONLY JSON: {"category":"CategoryName","icon":"Emoji"}
+Categories: Work, Personal, Urgent, Coding, Health, Finance, Learning, Chores, Setup.`;
 
             const result = await model.generateContent(prompt);
             const responseText = result.response.text();
