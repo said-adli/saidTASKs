@@ -6,6 +6,10 @@ import {
     updateDoc,
     deleteDoc,
     getDoc,
+    getDocs,
+    query,
+    where,
+    writeBatch,
     serverTimestamp,
     Timestamp
 } from 'firebase/firestore';
@@ -118,5 +122,17 @@ export const taskService = {
             updatedAt: serverTimestamp(),
         });
         return 'completed';
+    },
+
+    nukeWorkspaceTasks: async (workspaceId: string) => {
+        const tasksRef = collection(db, 'tasks');
+        const q = query(tasksRef, where('workspaceId', '==', workspaceId));
+        const snapshot = await getDocs(q);
+        
+        const batch = writeBatch(db);
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
     }
 };

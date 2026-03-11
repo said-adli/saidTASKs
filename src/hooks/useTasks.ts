@@ -48,8 +48,17 @@ export function useTasks() {
                         id: doc.id,
                     })) as Task[];
 
-                // Filter out bad missing-title tasks from testing
-                const validTasks = fetchedTasks.filter(t => t.title && t.title.trim() !== '');
+                // Filter out bad missing-title tasks and DELETE them from Firestore permanently!
+                const validTasks: Task[] = [];
+                
+                fetchedTasks.forEach(t => {
+                    if (!t.title || typeof t.title !== 'string' || t.title.trim() === '') {
+                        console.warn('Deleting ghost/corrupted task:', t.id);
+                        taskService.deleteTask(t.id).catch(console.error);
+                    } else {
+                        validTasks.push(t);
+                    }
+                });
 
                 // This will seamlessly overwrite temporary optimistic UI tasks
                 setTasks(validTasks);

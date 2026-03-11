@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useTagStore } from '@/store/useTagStore';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
@@ -363,6 +364,7 @@ function Dashboard() {
   const { tasks, loading, error } = useTasks();
   const { projects, activeProjectId } = useProjects();
   const { activeTagId } = useTagStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredTasks = tasks.filter(task => {
@@ -436,6 +438,24 @@ function Dashboard() {
           )}
 
           <button
+            onClick={async () => {
+              if (activeWorkspaceId && confirm('NUCLEAR OPTION: Delete ALL tasks in this workspace? This cannot be undone.')) {
+                try {
+                  const { taskService } = await import('@/lib/firebase/taskService');
+                  await taskService.nukeWorkspaceTasks(activeWorkspaceId);
+                  alert('All tasks deleted.');
+                } catch (err) {
+                  console.error(err);
+                  alert('Failed to delete tasks.');
+                }
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium border border-red-700"
+          >
+            Nuke Vault
+          </button>
+
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium"
           >
@@ -466,7 +486,7 @@ function Dashboard() {
                 </span>
               </div>
 
-              {loading ? (
+              {loading && activeTasks.length === 0 ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="h-24 w-full bg-zinc-100 dark:bg-zinc-800 animate-pulse rounded-lg border border-zinc-200 dark:border-zinc-700" />
