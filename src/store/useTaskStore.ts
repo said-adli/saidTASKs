@@ -8,6 +8,7 @@ interface TaskStore {
     tasks: Task[];
     loading: boolean;
     error: string | null;
+    pendingWrites: Set<string>;
     // Actions
     setTasks: (tasks: Task[]) => void;
     setLoading: (loading: boolean) => void;
@@ -24,6 +25,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     tasks: [],
     loading: true,
     error: null,
+    pendingWrites: new Set(),
 
     setTasks: (tasks) => set((state) => {
         // Atomic Update: Merge new snapshot tasks with shallow field comparison
@@ -31,6 +33,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
         const mergedTasks = tasks.map(newTask => {
             const oldTask = oldTasksMap.get(newTask.id);
+
+            // Ignore incoming updates for tasks with pending writes to prevent UI flicker
+            if (state.pendingWrites.has(newTask.id)) {
+                return oldTask || newTask;
+            }
 
             // Shallow field comparator: check key fields instead of JSON.stringify
             if (oldTask &&
@@ -119,10 +126,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     updateTask: async (taskId, data) => {
         // Save original for rollback
         const originalTasks = [...get().tasks];
+        const oldTask = originalTasks.find(t => t.id === taskId);
 
         // Optimistic Update
         set((state) => ({
-            tasks: state.tasks.map(t => t.id === taskId ? { ...t, ...data } : t)
+            tasks: state.tasks.map(t => t.id === taskId ? { ...t, ...data } : t),
+            pendingWrites: new Set(state.pendingWrites).add(taskId)
         }));
 
         try {
@@ -147,9 +156,20 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             } else {
                 await taskService.updateTask(taskId, data);
             }
+
+            if (data.status === 'todo' && oldTask && oldTask.status === 'completed') {
+                const rewardUserId = oldTask.assigneeId || oldTask.userId;
+                await userService.revokeTaskCompletion(rewardUserId);
+            }
         } catch (err: any) {
             // Rollback
             set({ tasks: originalTasks, error: err.message });
+        } finally {
+            set((state) => {
+                const next = new Set(state.pendingWrites);
+                next.delete(taskId);
+                return { pendingWrites: next };
+            });
         }
     },
 
@@ -170,11 +190,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     toggleTaskStatus: async (taskId, currentStatus) => {
         const originalTasks = [...get().tasks];
+        const oldTask = originalTasks.find(t => t.id === taskId);
         const newStatus = currentStatus === 'completed' ? 'todo' : 'completed';
 
         // Optimistic UI Toggle (instant reaction)
         set((state) => ({
-            tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t)
+            tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t),
+            pendingWrites: new Set(state.pendingWrites).add(taskId)
         }));
 
         // Background Sync (Fire-and-forget style for perceived speed)
@@ -197,13 +219,27 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
                             targetName: taskObj.title,
                         });
                     }
+                } else if (newStatus === 'todo' && oldTask && oldTask.status === 'completed') {
+                    const rewardUserId = oldTask.assigneeId || oldTask.userId;
+                    userService.revokeTaskCompletion(rewardUserId).catch(console.error);
                 }
+            }).finally(() => {
+                set((state) => {
+                    const next = new Set(state.pendingWrites);
+                    next.delete(taskId);
+                    return { pendingWrites: next };
+                });
             }).catch((err) => {
                 throw err;
             });
         } catch (err: any) {
             // Revert on throw
             set({ tasks: originalTasks, error: err.message });
+            set((state) => {
+                const next = new Set(state.pendingWrites);
+                next.delete(taskId);
+                return { pendingWrites: next };
+            });
         }
     }
 }));

@@ -95,6 +95,15 @@ export const workspaceService = {
 
     removeMember: async (workspaceId: string, userId: string) => {
         const workspaceRef = doc(db, 'workspaces', workspaceId);
+        
+        const snapshot = await getDoc(workspaceRef);
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data.ownerId === userId) {
+                throw new Error("Cannot leave workspace. Transfer ownership or delete the workspace instead.");
+            }
+        }
+
         await updateDoc(workspaceRef, {
             memberIds: arrayRemove(userId)
         });

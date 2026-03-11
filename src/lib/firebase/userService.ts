@@ -138,5 +138,33 @@ export const userService = {
             console.error("Project reward transaction failed: ", error);
             throw error;
         }
+    },
+
+    revokeTaskCompletion: async (userId: string) => {
+        const userRef = doc(db, 'users', userId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+
+                if (!userDoc.exists()) {
+                    throw new Error("User document does not exist!");
+                }
+
+                const data = userDoc.data() as UserProfile;
+
+                // 1. Calculate XP & Level (-100 per reverted task)
+                const newXp = Math.max(0, data.xp - 100);
+                const newLevel = userService.calculateLevel(newXp);
+
+                transaction.update(userRef, {
+                    xp: newXp,
+                    level: newLevel,
+                });
+            });
+        } catch (error) {
+            console.error("Revoke transaction failed: ", error);
+            throw error;
+        }
     }
 };

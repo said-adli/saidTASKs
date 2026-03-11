@@ -56,11 +56,13 @@ export const aiAuditorService = {
         if (!apiKey) throw new Error('Gemini API key is missing');
 
         const memberList = members.map(m => `- ${m.displayName || 'Unknown'}`).join('\n');
-        const taskList = tasks.map(t => {
-            const assignee = members.find(m => m.userId === t.assigneeId)?.displayName || 'Unassigned';
-            const due = t.dueDate ? new Date(t.dueDate.seconds * 1000).toLocaleDateString() : 'None';
-            return `- [${t.status}] ${t.title} | P:${t.priority} | @${assignee} | Due:${due}`;
-        }).join('\n');
+        const taskList = tasks
+            .filter(t => t.status !== 'completed')
+            .map(t => {
+                const assignee = members.find(m => m.userId === t.assigneeId)?.displayName || 'Unassigned';
+                const due = t.dueDate ? new Date(t.dueDate.seconds * 1000).toLocaleDateString() : 'None';
+                return `- [${t.status}] ${t.title} | P:${t.priority} | @${assignee} | Due:${due}`;
+            }).join('\n');
         const activityList = recentActivity.slice(0, 10).map(a =>
             `- ${a.actorName || a.actorId} ${a.action} ${a.targetName || ''}`
         ).join('\n');

@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceStore } from '@/store/workspaceStore';
 import { Loader2 } from 'lucide-react';
+import { DataSyncLayer } from './DataSyncLayer';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,6 +41,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     return (
         <div className="flex min-h-screen w-full bg-white dark:bg-zinc-950 relative">
+            <DataSyncLayer />
             {/* Desktop Sidebar */}
             <div className="hidden md:flex h-screen sticky top-0 shrink-0">
                 <Sidebar />

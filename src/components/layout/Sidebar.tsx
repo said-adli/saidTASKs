@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Folder, Kanban, Calendar, BarChart2, CheckSquare, Inbox, Calendar as CalendarIcon, Star, Plus, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useProjects } from '@/hooks/useProjects';
-import { useTags } from '@/hooks/useTags';
 import { useAuthStore } from '@/store/authStore';
+import { useProjectStore } from '@/store/useProjectStore';
 import { useTagStore } from '@/store/useTagStore';
 import { useState, useEffect } from 'react';
 import { ProjectModal } from '@/components/projects/ProjectModal';
@@ -35,9 +34,8 @@ const smartLists = [
 export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => void }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { projects, activeProjectId, setActiveProjectId } = useProjects();
-    const { tags } = useTags();
-    const { activeTagId, setActiveTagId } = useTagStore();
+    const { projects, activeProjectId, setActiveProjectId } = useProjectStore();
+    const { tags, activeTagId, setActiveTagId } = useTagStore();
     const { profile } = useAuthStore();
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
