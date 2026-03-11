@@ -73,8 +73,7 @@ export default function KanbanBoard() {
                 return due > today;
             }
             if (activeProjectId === 'inbox') {
-                const inbox = projects.find(p => p.isDefault);
-                return inbox ? task.projectId === inbox.id : true;
+                return true;
             }
             if (activeProjectId === 'assigned-to-me') {
                 return task.assigneeId === user?.uid;

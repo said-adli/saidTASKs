@@ -377,8 +377,8 @@ function Dashboard() {
       return true;
     }
     if (activeProjectId === 'inbox') {
-      const inbox = projects.find(p => p.isDefault);
-      return inbox ? task.projectId === inbox.id : true;
+      // Global Inbox: Show ALL tasks in this workspace
+      return true;
     }
     if (activeProjectId === 'assigned-to-me') {
       return task.assigneeId === user?.uid;
