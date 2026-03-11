@@ -98,7 +98,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                         wsStore.setActiveWorkspaceId(workspaceId);
                     }
 
-                    await wsStore.fetchWorkspaces(user.uid);
+                    await wsStore.subscribeToWorkspaces(user.uid);
 
                     // --- Presence & Members Subscription ---
                     presenceService.init(user.uid);
@@ -115,6 +115,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             } else {
                 // User is logged out
                 presenceService.goOffline(get().user?.uid || '');
+                useWorkspaceStore.getState().unsubscribeFromWorkspaces();
                 useWorkspaceStore.getState().unsubscribeFromMembers();
                 set({ user: null, profile: null, loading: false });
             }

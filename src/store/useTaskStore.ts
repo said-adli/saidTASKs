@@ -199,15 +199,18 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             pendingWrites: new Set(state.pendingWrites).add(taskId)
         }));
 
-        // Background Sync (Fire-and-forget style for perceived speed)
-        try {
-            const taskObj = get().tasks.find(t => t.id === taskId);
+        // Background Sync with proper error-aware rollback
+        (async () => {
+            try {
+                const taskObj = get().tasks.find(t => t.id === taskId);
 
-            const syncPromise = newStatus === 'completed'
-                ? taskService.completeTask(taskId, taskObj)
-                : taskService.updateTask(taskId, { status: newStatus });
+                if (newStatus === 'completed') {
+                    await taskService.completeTask(taskId, taskObj);
+                } else {
+                    await taskService.updateTask(taskId, { status: newStatus });
+                }
 
-            syncPromise.then(() => {
+                // XP rewards / revocations (only after successful sync)
                 if (newStatus === 'completed' && taskObj) {
                     const rewardUserId = taskObj.assigneeId || taskObj.userId;
                     userService.rewardTaskCompletion(rewardUserId).catch(console.error);
@@ -223,23 +226,17 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
                     const rewardUserId = oldTask.assigneeId || oldTask.userId;
                     userService.revokeTaskCompletion(rewardUserId).catch(console.error);
                 }
-            }).finally(() => {
+            } catch (err: any) {
+                // Rollback: revert tasks to pre-toggle state
+                console.error('[toggleTaskStatus] Firestore sync failed, rolling back:', err);
+                set({ tasks: originalTasks, error: err.message });
+            } finally {
                 set((state) => {
                     const next = new Set(state.pendingWrites);
                     next.delete(taskId);
                     return { pendingWrites: next };
                 });
-            }).catch((err) => {
-                throw err;
-            });
-        } catch (err: any) {
-            // Revert on throw
-            set({ tasks: originalTasks, error: err.message });
-            set((state) => {
-                const next = new Set(state.pendingWrites);
-                next.delete(taskId);
-                return { pendingWrites: next };
-            });
-        }
+            }
+        })();
     }
 }));

@@ -52,8 +52,19 @@ export const projectService = {
     },
 
     deleteProject: async (projectId: string) => {
-        // Note: We might want to move tasks to Inbox or delete them when a project is deleted
-        // For now, we'll just delete the project to keep it simple
+        // Cascade: delete all tasks linked to this project first
+        const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
+        const tasksSnap = await getDocs(tasksQuery);
+
+        if (!tasksSnap.empty) {
+            const batch = writeBatch(db);
+            tasksSnap.docs.forEach(taskDoc => {
+                batch.delete(taskDoc.ref);
+            });
+            await batch.commit();
+        }
+
+        // Then delete the project itself
         const projectRef = doc(db, 'projects', projectId);
         await deleteDoc(projectRef);
     },

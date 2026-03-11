@@ -19,7 +19,7 @@ export function CreateWorkspaceModal({ isOpen, onClose }: CreateWorkspaceModalPr
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuthStore();
-    const { fetchWorkspaces, setActiveWorkspaceId } = useWorkspaceStore();
+    const { setActiveWorkspaceId } = useWorkspaceStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,7 +33,7 @@ export function CreateWorkspaceModal({ isOpen, onClose }: CreateWorkspaceModalPr
                 memberIds: [user.uid]
             });
 
-            await fetchWorkspaces(user.uid);
+            // Workspace list auto-updates via onSnapshot — just switch to the new one
             setActiveWorkspaceId(newWorkspace.id);
 
             toast.success('Workspace created successfully!');

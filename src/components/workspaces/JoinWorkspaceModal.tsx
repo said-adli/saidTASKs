@@ -19,7 +19,7 @@ export function JoinWorkspaceModal({ isOpen, onClose }: JoinWorkspaceModalProps)
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useAuthStore();
-    const { fetchWorkspaces, setActiveWorkspaceId } = useWorkspaceStore();
+    const { setActiveWorkspaceId } = useWorkspaceStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,7 +36,7 @@ export function JoinWorkspaceModal({ isOpen, onClose }: JoinWorkspaceModalProps)
                 actorName: user.displayName || undefined,
             });
 
-            await fetchWorkspaces(user.uid);
+            // Workspace list auto-updates via onSnapshot — just switch to the joined one
             setActiveWorkspaceId(workspaceId);
 
             toast.success('Joined workspace successfully!');

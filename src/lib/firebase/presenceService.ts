@@ -1,13 +1,15 @@
-import { db } from './config';
+import { db, rtdb } from './config';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, set, onDisconnect, serverTimestamp as rtdbServerTimestamp } from 'firebase/database';
 
 /**
  * Presence Service
  * 
- * Uses Firestore `users/{uid}` doc with an `isOnline` boolean and `lastSeen` timestamp.
- * We use a heartbeat interval approach since the app is on Firestore (not RTDB).
- * On page load, we set isOnline=true and start a heartbeat.
- * On page unload (visibilitychange / beforeunload), we set isOnline=false.
+ * Hybrid approach:
+ * - Firestore `users/{uid}` doc with `isOnline` boolean and `lastSeen` timestamp for queries.
+ * - RTDB `onDisconnect` for reliable crash/tab-close detection (works even if JS doesn't execute).
+ * - Heartbeat interval to keep Firestore status fresh.
+ * - `visibilitychange` / `beforeunload` for explicit status updates.
  */
 export const presenceService = {
     _intervalId: null as ReturnType<typeof setInterval> | null,
@@ -47,6 +49,7 @@ export const presenceService = {
             presenceService._intervalId = null;
         }
 
+        // Use sendBeacon for reliability on tab close when available
         const userRef = doc(db, 'users', userId);
         try {
             await setDoc(userRef, {
@@ -60,10 +63,21 @@ export const presenceService = {
 
     /**
      * Call this once in a top-level layout/provider to wire up
-     * visibility-change and beforeunload listeners.
+     * visibility-change, beforeunload, and RTDB onDisconnect listeners.
      */
     init: (userId: string) => {
         presenceService.goOnline(userId);
+
+        // --- RTDB onDisconnect: crash-safe offline detection ---
+        // Even if the browser crashes or the tab is killed without firing beforeunload,
+        // Firebase RTDB will automatically execute this cleanup.
+        try {
+            const rtdbPresenceRef = ref(rtdb, `presence/${userId}`);
+            set(rtdbPresenceRef, { online: true, lastSeen: rtdbServerTimestamp() });
+            onDisconnect(rtdbPresenceRef).set({ online: false, lastSeen: rtdbServerTimestamp() });
+        } catch (err) {
+            console.error('[Presence] Failed to set RTDB onDisconnect:', err);
+        }
 
         const handleVisibility = () => {
             if (document.visibilityState === 'visible') {
@@ -74,7 +88,6 @@ export const presenceService = {
         };
 
         const handleBeforeUnload = () => {
-            // We use sendBeacon pattern via navigator for reliability
             presenceService.goOffline(userId);
         };
 
@@ -88,3 +101,4 @@ export const presenceService = {
         };
     }
 };
+

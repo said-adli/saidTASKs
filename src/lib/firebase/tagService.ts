@@ -9,7 +9,9 @@ import {
     Timestamp,
     query,
     where,
-    getDocs
+    getDocs,
+    writeBatch,
+    arrayRemove
 } from 'firebase/firestore';
 
 export interface Tag {
@@ -44,6 +46,19 @@ export const tagService = {
     },
 
     deleteTag: async (tagId: string) => {
+        // Cascade: remove this tag ID from every task that references it
+        const tasksQuery = query(collection(db, 'tasks'), where('tagIds', 'array-contains', tagId));
+        const tasksSnap = await getDocs(tasksQuery);
+
+        if (!tasksSnap.empty) {
+            const batch = writeBatch(db);
+            tasksSnap.docs.forEach(taskDoc => {
+                batch.update(taskDoc.ref, { tagIds: arrayRemove(tagId) });
+            });
+            await batch.commit();
+        }
+
+        // Then delete the tag itself
         const tagRef = doc(db, 'tags', tagId);
         await deleteDoc(tagRef);
     },

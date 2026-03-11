@@ -17,7 +17,8 @@ interface WorkspaceState {
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     setIsLoungeOpen: (isOpen: boolean) => void;
-    fetchWorkspaces: (userId: string) => Promise<void>;
+    subscribeToWorkspaces: (userId: string) => void;
+    unsubscribeFromWorkspaces: () => void;
     subscribeToMembers: (memberIds: string[]) => void;
     unsubscribeFromMembers: () => void;
 }
@@ -46,6 +47,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     persist(
         (set, get) => {
             let workspaceUnsub: (() => void) | null = null;
+            let workspacesListUnsub: (() => void) | null = null;
             let memberRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
             return {
@@ -60,15 +62,48 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 setLoading: (loading) => set({ loading }),
                 setError: (error) => set({ error }),
                 setIsLoungeOpen: (isOpen) => set({ isLoungeOpen: isOpen }),
-                fetchWorkspaces: async (userId: string) => {
+
+                /**
+                 * Real-time workspace list: uses onSnapshot so new memberships
+                 * (e.g., join code) appear instantly without a page refresh.
+                 */
+                subscribeToWorkspaces: (userId: string) => {
+                    // Cleanup any previous subscription
+                    if (workspacesListUnsub) {
+                        workspacesListUnsub();
+                        workspacesListUnsub = null;
+                    }
+
                     set({ loading: true, error: null });
-                    try {
-                        const workspaces = await import('@/lib/firebase/workspaceService').then(m => m.workspaceService.getUserWorkspaces(userId));
-                        set({ workspaces, loading: false });
-                    } catch (err: any) {
-                        set({ error: err.message, loading: false });
+
+                    const q = query(
+                        collection(db, 'workspaces'),
+                        where('memberIds', 'array-contains', userId)
+                    );
+
+                    workspacesListUnsub = onSnapshot(
+                        q,
+                        (snapshot) => {
+                            const workspaces = snapshot.docs.map(d => ({
+                                id: d.id,
+                                ...d.data()
+                            })) as Workspace[];
+                            set({ workspaces, loading: false });
+                        },
+                        (err) => {
+                            console.error('[WorkspaceStore] onSnapshot error:', err);
+                            set({ error: err.message, loading: false });
+                        }
+                    );
+                },
+
+                unsubscribeFromWorkspaces: () => {
+                    if (workspacesListUnsub) {
+                        workspacesListUnsub();
+                        workspacesListUnsub = null;
                     }
                 },
+
                 /**
                  * Single-listener approach: listen to the workspace document.
                  * On any change (including memberIds array updates), batch-fetch
@@ -117,3 +152,4 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         }
     )
 );
+

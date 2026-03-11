@@ -40,6 +40,26 @@ export default function CalendarPage() {
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
     const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
+    /**
+     * Crash-proof date parser: handles Firestore Timestamps, plain {seconds} objects,
+     * and corrupted/missing values without crashing the page.
+     */
+    const safeParseDueDate = (dueDate: any): Date => {
+        try {
+            if (dueDate?.toDate && typeof dueDate.toDate === 'function') {
+                return dueDate.toDate();
+            }
+            if (dueDate?.seconds && typeof dueDate.seconds === 'number') {
+                return new Date(dueDate.seconds * 1000);
+            }
+            console.warn('[Calendar] Unrecognized dueDate format, falling back to now:', dueDate);
+            return new Date();
+        } catch (err) {
+            console.warn('[Calendar] Corrupted dueDate, falling back to now:', dueDate, err);
+            return new Date();
+        }
+    };
+
     const todayZero = new Date();
     todayZero.setHours(0, 0, 0, 0);
 
@@ -47,7 +67,7 @@ export default function CalendarPage() {
     const overdueTasks = activeTasks.filter(task => {
         if (!task.dueDate) return false;
         if (task.status === 'completed') return false; // Safety check
-        const dDate = task.dueDate.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
+        const dDate = safeParseDueDate(task.dueDate);
         dDate.setHours(0, 0, 0, 0);
         return dDate < todayZero;
     });
@@ -115,7 +135,7 @@ export default function CalendarPage() {
                     </h3>
                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
                         {overdueTasks.map(task => {
-                            const dDate = task.dueDate?.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
+                            const dDate = safeParseDueDate(task.dueDate);
                             return (
                                 <div 
                                     key={task.id} 
@@ -146,7 +166,7 @@ export default function CalendarPage() {
 
                         const dayTasks = activeTasks.filter(task => {
                             if (!task.dueDate) return false;
-                            const dDate = task.dueDate.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
+                            const dDate = safeParseDueDate(task.dueDate);
                             return isSameDay(dDate, day);
                         });
 
