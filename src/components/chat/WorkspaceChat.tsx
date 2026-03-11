@@ -16,7 +16,8 @@ export function WorkspaceChat() {
     // Subscribe to the high-performance chat store
     const chatState = useSyncExternalStore(
         (cb) => workspaceChatStore.subscribe(cb),
-        () => workspaceChatStore.getSnapshot()
+        () => workspaceChatStore.getSnapshot(),
+        () => workspaceChatStore.getSnapshot() // Next.js SSR support
     );
 
     const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
