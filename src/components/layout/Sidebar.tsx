@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Folder, Kanban, Calendar, BarChart2, CheckSquare, Inbox, Calendar as CalendarIcon, Star, Plus, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Folder, Kanban, Calendar, BarChart2, CheckSquare, Inbox, Calendar as CalendarIcon, Star, Plus, UserCheck, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -20,6 +20,7 @@ const topNavItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Board', href: '/board', icon: Kanban },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Chat', href: '/chat', icon: MessageSquare },
     { name: 'Analytics', href: '/analytics', icon: BarChart2 },
 ];
 

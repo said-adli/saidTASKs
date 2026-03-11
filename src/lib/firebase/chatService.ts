@@ -39,7 +39,7 @@ export const chatService = {
     ) => {
         if (!message.text.trim()) return;
 
-        const chatRef = ref(rtdb, `workspaceChat/${workspaceId}/messages`);
+        const chatRef = ref(rtdb, `workspaces/${workspaceId}/messages`);
         const newMsgRef = push(chatRef);
 
         await set(newMsgRef, {
@@ -60,7 +60,7 @@ export const chatService = {
         callback: (messages: ChatMessage[]) => void,
         messageLimit: number = 80
     ) => {
-        const chatRef = ref(rtdb, `workspaceChat/${workspaceId}/messages`);
+        const chatRef = ref(rtdb, `workspaces/${workspaceId}/messages`);
         const chatQuery = query(chatRef, orderByChild('timestamp'), limitToLast(messageLimit));
 
         const handler = onValue(chatQuery, (snapshot) => {
@@ -88,7 +88,7 @@ export const chatService = {
         displayName: string,
         isTyping: boolean
     ) => {
-        const typingRef = ref(rtdb, `workspaceChat/${workspaceId}/typing/${userId}`);
+        const typingRef = ref(rtdb, `workspaces/${workspaceId}/typing/${userId}`);
 
         if (isTyping) {
             set(typingRef, {
@@ -111,7 +111,7 @@ export const chatService = {
         currentUserId: string,
         callback: (typingUsers: TypingUser[]) => void
     ) => {
-        const typingRef = ref(rtdb, `workspaceChat/${workspaceId}/typing`);
+        const typingRef = ref(rtdb, `workspaces/${workspaceId}/typing`);
 
         const handler = onValue(typingRef, (snapshot) => {
             const users: TypingUser[] = [];
