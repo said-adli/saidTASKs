@@ -63,7 +63,7 @@ export function WorkspaceSwitcher() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform group-hover:scale-110" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[240px] p-0 z-[200] bg-white dark:bg-zinc-900 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                <PopoverContent className="w-[240px] p-0 z-[200] bg-white dark:bg-zinc-950 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg">
                     <Command>
                         <CommandList>
                             <CommandInput placeholder="Search workspace..." />
@@ -102,10 +102,10 @@ export function WorkspaceSwitcher() {
                                             setOpen(false);
                                             setShowInviteModal(true);
                                         }}
-                                        className="cursor-pointer gap-2"
+                                        className="cursor-pointer gap-2 text-indigo-600 dark:text-indigo-400 data-[selected=true]:text-indigo-700 dark:data-[selected=true]:text-indigo-300"
                                     >
-                                        <UserPlus className="h-4 w-4 text-indigo-500" />
-                                        <span className="text-indigo-600 dark:text-indigo-400 font-medium">Invite Members</span>
+                                        <UserPlus className="h-4 w-4" />
+                                        <span className="font-medium">Invite Members</span>
                                     </CommandItem>
                                 )}
                                 <CommandItem
