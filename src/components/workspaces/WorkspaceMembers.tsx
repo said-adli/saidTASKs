@@ -5,7 +5,7 @@ import { useWorkspaceStore } from '@/store/workspaceStore';
 import { useAuthStore } from '@/store/authStore';
 import { useProjectStore } from '@/store/useProjectStore';
 import { workspaceService } from '@/lib/firebase/workspaceService';
-import { LogOut, Trash2, Loader2 } from 'lucide-react';
+import { LogOut, Trash2, Loader2, UserMinus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,6 +21,7 @@ export function WorkspaceMembers() {
     const { setActiveProjectId } = useProjectStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
+    const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
     const members = Object.values(memberProfiles);
@@ -65,6 +66,22 @@ export function WorkspaceMembers() {
             toast.error("Failed to delete workspace.");
         } finally {
             setIsLeaving(false);
+        }
+    };
+
+    const handleKickMember = async (memberId: string) => {
+        if (!user || !activeWorkspaceId || memberId === user.uid) return;
+        if (!confirm("Are you sure you want to kick this member from the workspace?")) return;
+        
+        try {
+            setRemovingUserId(memberId);
+            await workspaceService.removeMember(activeWorkspaceId, memberId);
+            toast.success("Member removed successfully.");
+        } catch (error) {
+            console.error("Failed to remove member:", error);
+            toast.error("Failed to remove member.");
+        } finally {
+            setRemovingUserId(null);
         }
     };
 
@@ -143,6 +160,16 @@ export function WorkspaceMembers() {
                                         </span>
                                     </div>
                                 </div>
+                                {user && activeWorkspace.ownerId === user.uid && member.userId !== user.uid && (
+                                    <button
+                                        onClick={() => handleKickMember(member.userId)}
+                                        disabled={removingUserId === member.userId}
+                                        className="p-2 ml-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors disabled:opacity-50"
+                                        title="Kick Member"
+                                    >
+                                        {removingUserId === member.userId ? <Loader2 size={16} className="animate-spin" /> : <UserMinus size={16} />}
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -72,7 +72,11 @@ export default function Sidebar({ onNavItemClick }: { onNavItemClick?: () => voi
 
                 <WorkspaceSwitcher />
 
-                {/* Gamification Mini Progress Bar */}
+                {/* Team Members Section */}
+                <div className="w-full space-y-1 group px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Team Members</h3>
+                    <WorkspaceMembers />
+                </div>
                 {profile && (
                     <div className="w-full space-y-1 group px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                         <div className="flex items-center justify-between text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
