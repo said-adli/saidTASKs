@@ -46,6 +46,7 @@ export default function CalendarPage() {
     // Any task before today that is still active
     const overdueTasks = activeTasks.filter(task => {
         if (!task.dueDate) return false;
+        if (task.status === 'completed') return false; // Safety check
         const dDate = task.dueDate.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
         dDate.setHours(0, 0, 0, 0);
         return dDate < todayZero;

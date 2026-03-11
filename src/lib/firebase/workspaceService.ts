@@ -17,7 +17,9 @@ import {
     limit,
     addDoc,
     onSnapshot,
+    writeBatch,
 } from 'firebase/firestore';
+import { taskService } from './taskService';
 
 export interface Workspace {
     id: string;
@@ -88,9 +90,44 @@ export const workspaceService = {
 
     deleteWorkspace: async (workspaceId: string) => {
         const workspaceRef = doc(db, 'workspaces', workspaceId);
+        
+        // 1. Fetch workspace to get joinCode for cleanup
+        const snapshot = await getDoc(workspaceRef);
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data.joinCode) {
+                const joinCodeRef = doc(db, 'joinCodes', data.joinCode);
+                await deleteDoc(joinCodeRef);
+            }
+        }
+
+        // 2. Cascade delete all tasks
+        await taskService.nukeWorkspaceTasks(workspaceId);
+
+        // 3. Cascade delete activity logs
+        const logRef = collection(db, 'workspaces', workspaceId, 'activityLog');
+        const logsSnapshot = await getDocs(query(logRef));
+        
+        // Firestore batches can hold up to 500 operations. We assume a single workspace's logs won't massively exceed this in this flow,
+        // or we handle basic batching for safety:
+        const batches = [];
+        let currentBatch = writeBatch(db);
+        let count = 0;
+        
+        logsSnapshot.docs.forEach((docSnap) => {
+            currentBatch.delete(docSnap.ref);
+            count++;
+            if (count === 500) {
+                batches.push(currentBatch.commit());
+                currentBatch = writeBatch(db);
+                count = 0;
+            }
+        });
+        if (count > 0) batches.push(currentBatch.commit());
+        await Promise.all(batches);
+
+        // 4. Finally, delete the workspace document itself
         await deleteDoc(workspaceRef);
-        // Also delete join code public entry if possible, but requires searching or knowing it
-        // and deleting tasks? Handled by Cloud Functions or omitted for simplicity.
     },
 
     removeMember: async (workspaceId: string, userId: string) => {

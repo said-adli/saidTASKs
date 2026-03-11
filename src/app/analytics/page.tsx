@@ -152,6 +152,11 @@ export default function AnalyticsPage() {
 
                 <div className="h-72 w-full min-h-[300px]">
                     {isMounted && (
+                        totalCompleted === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full w-full border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
+                                <p className="text-zinc-500 dark:text-zinc-400 font-medium">No activities recorded yet in the last 7 days.</p>
+                            </div>
+                        ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <XAxis
@@ -188,6 +193,7 @@ export default function AnalyticsPage() {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                        )
                     )}
                 </div>
             </div>

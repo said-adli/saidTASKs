@@ -17,28 +17,6 @@ export interface UserProfile {
 }
 
 export const userService = {
-    getUsersByIds: async (userIds: string[]): Promise<UserProfile[]> => {
-        if (!userIds || userIds.length === 0) return [];
-
-        // Firestore 'in' queries are limited to 10 items.
-        // For a real production app needing >10, we would batch this.
-        const chunks = [];
-        for (let i = 0; i < userIds.length; i += 10) {
-            chunks.push(userIds.slice(i, i + 10));
-        }
-
-        let allUsers: UserProfile[] = [];
-
-        for (const chunk of chunks) {
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, where(documentId(), 'in', chunk));
-            const snapshot = await getDocs(q);
-            const users = snapshot.docs.map(doc => ({ userId: doc.id, ...doc.data() }) as UserProfile);
-            allUsers = [...allUsers, ...users];
-        }
-
-        return allUsers;
-    },
 
     // Logic: 100 XP per task. Level = floor(sqrt(totalXP / 100)) + 1
     calculateLevel: (xp: number) => {

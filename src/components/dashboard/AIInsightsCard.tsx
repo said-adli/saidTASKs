@@ -139,7 +139,7 @@ export function AIInsightsCard() {
                     </div>
                 ) : insights.length === 0 ? (
                     <div className="text-sm text-zinc-500 italic py-2">
-                        Click refresh to analyze the workspace.
+                        {tasks.length === 0 ? "No activities recorded yet." : "Click refresh to analyze the workspace."}
                     </div>
                 ) : (
                     <ul className="space-y-2.5">
