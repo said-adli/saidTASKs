@@ -39,7 +39,7 @@ export function CommandPalette() {
     return (
         <AnimatePresence>
             {isCmdKOpen && (
-                <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
+                <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -53,7 +53,7 @@ export function CommandPalette() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="relative z-[101] w-full max-w-2xl px-4"
+                        className="relative z-[201] w-full max-w-2xl px-4"
                     >
                         <Command className="w-full flex flex-col overflow-hidden bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-800">
                             <div className="flex items-center px-4 border-b border-zinc-200 dark:border-zinc-800" cmdk-input-wrapper="">

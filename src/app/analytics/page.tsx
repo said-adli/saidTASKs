@@ -2,6 +2,7 @@
 
 import { useAuthStore } from '@/store/authStore';
 import { useTasks } from '@/hooks/useTasks';
+import { useWorkspaceStore } from '@/store/workspaceStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart2, Zap, Target, Star, Trophy } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
@@ -15,6 +16,7 @@ interface FirebaseTimestamp {
 export default function AnalyticsPage() {
     const { user, profile, loading } = useAuthStore();
     const { tasks } = useTasks();
+    const { activeWorkspaceId } = useWorkspaceStore();
     const { theme } = useTheme();
     const [isMounted, setIsMounted] = useState(false);
 
@@ -132,12 +134,21 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Recharts Bar Chart */}
-            <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Tasks Completed</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Your output over the last 7 days.</p>
+            {/* Recharts Bar Chart (Workspace Context) */}
+            {!activeWorkspaceId ? (
+                <div className="p-12 text-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm flex flex-col items-center justify-center">
+                    <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-4">
+                        <BarChart2 className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Workspace Performance</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 max-w-sm">Select a workspace from the sidebar to view your task completion trends and statistics.</p>
                 </div>
+            ) : (
+                <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Tasks Completed</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">Your output over the last 7 days in this workspace.</p>
+                    </div>
 
                 <div className="h-72 w-full min-h-[300px]">
                     {isMounted && (
@@ -180,6 +191,7 @@ export default function AnalyticsPage() {
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 }

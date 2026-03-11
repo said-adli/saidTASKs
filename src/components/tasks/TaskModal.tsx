@@ -12,6 +12,7 @@ import { TaskPriority, SubTask, Attachment, RecurringInterval } from '@/lib/fire
 import { uploadToCloudinary } from '@/lib/cloudinary/uploadService';
 import { aiService } from '@/lib/gemini/aiService';
 import { aiAuditorService } from '@/lib/gemini/aiAuditorService';
+import { rewardService } from '@/lib/firebase/rewardService';
 import { Sparkles, Loader2, Paperclip, File as FileIcon, Image as ImageIcon, Tag as TagIcon, Repeat, UserCircle, Wand2 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -116,7 +117,7 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
     };
 
     const handleAIBreakdown = async () => {
-        if (!title.trim()) return;
+        if (!title.trim() || !user) return;
         try {
             setIsBreakingDown(true);
             const steps = await aiService.breakDownTask(title.trim(), description.trim());
@@ -126,6 +127,10 @@ export function TaskModal({ isOpen, onClose, initialDueDate }: TaskModalProps) {
                 isCompleted: false
             }));
             setSubtasks(newSubtasks);
+            
+            // Grant Gamification XP
+            await rewardService.grantXP(user.uid, 50);
+            toast.success("AI Breakdown generated! +50 XP");
         } catch (error) {
             console.error("Failed to break down task", error);
             alert("Could not break down task. Make sure Gemini API Key is set.");

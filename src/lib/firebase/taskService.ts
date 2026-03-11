@@ -5,6 +5,7 @@ import {
     setDoc,
     updateDoc,
     deleteDoc,
+    getDoc,
     serverTimestamp,
     Timestamp
 } from 'firebase/firestore';
@@ -83,24 +84,29 @@ export const taskService = {
         await deleteDoc(taskRef);
     },
 
-    toggleTaskStatus: async (taskId: string, currentStatus: TaskStatus, task?: Task) => {
-        const newStatus: TaskStatus = currentStatus === 'completed' ? 'todo' : 'completed';
+    completeTask: async (taskId: string, task?: Task) => {
         const taskRef = doc(db, 'tasks', taskId);
+        
+        let taskData = task;
+        if (!taskData) {
+            const taskDoc = await getDoc(taskRef);
+            if (taskDoc.exists()) {
+                taskData = { id: taskDoc.id, ...taskDoc.data() } as Task;
+            }
+        }
 
         // Handle Recurring Task Cloning
-        if (newStatus === 'completed' && task && task.recurringInterval && task.dueDate) {
-            const nextDueDate = new Date((task.dueDate as any).seconds * 1000 || (task.dueDate as any).toDate());
-            if (task.recurringInterval === 'daily') nextDueDate.setDate(nextDueDate.getDate() + 1);
-            if (task.recurringInterval === 'weekly') nextDueDate.setDate(nextDueDate.getDate() + 7);
-            if (task.recurringInterval === 'monthly') nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        if (taskData && taskData.recurringInterval && taskData.dueDate) {
+            const nextDueDate = new Date((taskData.dueDate as any).seconds * 1000 || (taskData.dueDate as any).toDate());
+            if (taskData.recurringInterval === 'daily') nextDueDate.setDate(nextDueDate.getDate() + 1);
+            if (taskData.recurringInterval === 'weekly') nextDueDate.setDate(nextDueDate.getDate() + 7);
+            if (taskData.recurringInterval === 'monthly') nextDueDate.setMonth(nextDueDate.getMonth() + 1);
 
-            const { id, createdAt, updatedAt, ...taskData } = task;
+            const { id, createdAt, updatedAt, ...restData } = taskData;
+            const resetSubtasks = restData.subtasks?.map(st => ({ ...st, isCompleted: false })) || [];
 
-            // Subtasks should be reset to incomplete for the cloned task
-            const resetSubtasks = taskData.subtasks?.map(st => ({ ...st, isCompleted: false })) || [];
-
-            await taskService.createTask(task.workspaceId, task.userId, {
-                ...taskData,
+            await taskService.createTask(taskData.workspaceId, taskData.userId, {
+                ...restData,
                 status: 'todo',
                 dueDate: Timestamp.fromDate(nextDueDate),
                 subtasks: resetSubtasks
@@ -108,9 +114,9 @@ export const taskService = {
         }
 
         await updateDoc(taskRef, {
-            status: newStatus,
+            status: 'completed',
             updatedAt: serverTimestamp(),
         });
-        return newStatus;
+        return 'completed';
     }
 };

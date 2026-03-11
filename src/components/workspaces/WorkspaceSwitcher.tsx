@@ -23,6 +23,7 @@ import { CreateWorkspaceModal } from './CreateWorkspaceModal';
 import { JoinWorkspaceModal } from './JoinWorkspaceModal';
 import { InviteModal } from './InviteModal';
 import { useAuthStore } from '@/store/authStore';
+import { useProjectStore } from '@/store/useProjectStore';
 
 export function WorkspaceSwitcher() {
     const [open, setOpen] = useState(false);
@@ -32,6 +33,7 @@ export function WorkspaceSwitcher() {
 
     const { workspaces, activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore();
     const { user } = useAuthStore();
+    const { setActiveProjectId } = useProjectStore();
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
@@ -72,6 +74,7 @@ export function WorkspaceSwitcher() {
                                         key={workspace.id}
                                         onSelect={() => {
                                             setActiveWorkspaceId(workspace.id);
+                                            setActiveProjectId('inbox');
                                             setOpen(false);
                                         }}
                                         className="gap-2 cursor-pointer"

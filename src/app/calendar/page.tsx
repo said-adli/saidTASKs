@@ -17,7 +17,7 @@ import {
     subMonths,
     isToday
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function CalendarPage() {
@@ -39,6 +39,17 @@ export default function CalendarPage() {
 
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
     const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+
+    const todayZero = new Date();
+    todayZero.setHours(0, 0, 0, 0);
+
+    // Any task before today that is still active
+    const overdueTasks = activeTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dDate = task.dueDate.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
+        dDate.setHours(0, 0, 0, 0);
+        return dDate < todayZero;
+    });
 
     const handleDayClick = (day: Date) => {
         setSelectedDate(day);
@@ -95,6 +106,28 @@ export default function CalendarPage() {
                     </button>
                 </div>
             </header>
+
+            {overdueTasks.length > 0 && (
+                <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-900/50 rounded-xl p-4 shrink-0 shadow-sm transition-all">
+                    <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 flex items-center gap-1.5">
+                        <AlertTriangle size={16} /> Late List: Action Required
+                    </h3>
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                        {overdueTasks.map(task => {
+                            const dDate = task.dueDate?.toDate ? task.dueDate.toDate() : new Date((task.dueDate as any).seconds * 1000);
+                            return (
+                                <div 
+                                    key={task.id} 
+                                    className="shrink-0 w-56 flex flex-col justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded border border-red-100 dark:border-red-900 shadow-sm cursor-pointer hover:border-red-300 dark:hover:border-red-500 transition-colors"
+                                >
+                                    <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">{task.title}</div>
+                                    <div className="text-[10px] font-medium text-red-500 mt-0.5">Late: {format(dDate, "MMM d, yyyy")}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
                 <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">

@@ -32,9 +32,15 @@ export interface WorkspaceAuditInsight {
     message: string;
 }
 
+export interface SuggestedTaskUpdate {
+    taskId: string;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+}
+
 export interface WorkspaceAuditResult {
     insights: WorkspaceAuditInsight[];
     chatNudge?: string;
+    suggestedTaskUpdates?: SuggestedTaskUpdate[];
 }
 
 export const aiAuditorService = {
@@ -97,6 +103,18 @@ Return JSON per schema. Be concise and actionable.`;
                 chatNudge: {
                     type: SchemaType.STRING,
                     description: "Optional team chat message for major blockers. Empty string if none.",
+                },
+                suggestedTaskUpdates: {
+                    type: SchemaType.ARRAY,
+                    description: "Specific tasks to update based on insights (e.g. increase priority). Optional.",
+                    items: {
+                        type: SchemaType.OBJECT,
+                        properties: {
+                            taskId: { type: SchemaType.STRING, description: "The exact task id from the list" },
+                            priority: { type: SchemaType.STRING, description: "low, medium, high, or urgent" }
+                        },
+                        required: ["taskId"]
+                    }
                 }
             },
             required: ["insights"]

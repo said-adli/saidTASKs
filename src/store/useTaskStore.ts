@@ -50,7 +50,22 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         });
 
         // Add any "temp_" tasks that haven't been saved to Firestore yet
-        const tempTasks = state.tasks.filter(t => t.id.startsWith('temp_'));
+        const tempTasks = state.tasks.filter(t => {
+            if (!t.id.startsWith('temp_')) return false;
+            
+            // Garbage Collection: Remove if older than 10 seconds
+            const timestampStr = t.id.replace('temp_', '');
+            const timestamp = parseInt(timestampStr, 10);
+            if (!isNaN(timestamp) && Date.now() - timestamp > 10000) {
+                return false;
+            }
+
+            // Reconciliation: Remove if a permanent task with the same title already exists
+            const hasPermanent = tasks.some(pt => !pt.id.startsWith('temp_') && pt.title === t.title);
+            if (hasPermanent) return false;
+
+            return true;
+        });
 
         const finalTasks = [...tempTasks, ...mergedTasks].sort((a, b) => {
             const timeA = a.createdAt?.seconds || Date.now();
@@ -111,25 +126,26 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         }));
 
         try {
-            await taskService.updateTask(taskId, data);
+            const taskObj = get().tasks.find(t => t.id === taskId);
 
-            // Trigger Gamification if checking a task off
-            // XP goes to the ASSIGNEE if one exists, otherwise the creator
             if (data.status === 'completed') {
-                const task = get().tasks.find(t => t.id === taskId);
-                if (task) {
-                    const rewardUserId = task.assigneeId || task.userId;
+                await taskService.completeTask(taskId, taskObj);
+                
+                // Reward Gamification XP
+                if (taskObj) {
+                    const rewardUserId = taskObj.assigneeId || taskObj.userId;
                     await userService.rewardTaskCompletion(rewardUserId);
 
-                    // Log to workspace activity feed
-                    if (task.workspaceId) {
-                        activityLogService.log(task.workspaceId, {
+                    if (taskObj.workspaceId) {
+                        activityLogService.log(taskObj.workspaceId, {
                             action: 'task.completed',
-                            actorId: task.userId,
-                            targetName: task.title,
+                            actorId: taskObj.userId,
+                            targetName: taskObj.title,
                         });
                     }
                 }
+            } else {
+                await taskService.updateTask(taskId, data);
             }
         } catch (err: any) {
             // Rollback
@@ -165,14 +181,15 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         try {
             const taskObj = get().tasks.find(t => t.id === taskId);
 
-            // We run the firebase call seamlessly in background without awaiting before UI reaction
-            taskService.toggleTaskStatus(taskId, currentStatus, taskObj).then(() => {
-                // XP goes to the ASSIGNEE if one exists, otherwise the creator
+            const syncPromise = newStatus === 'completed'
+                ? taskService.completeTask(taskId, taskObj)
+                : taskService.updateTask(taskId, { status: newStatus });
+
+            syncPromise.then(() => {
                 if (newStatus === 'completed' && taskObj) {
                     const rewardUserId = taskObj.assigneeId || taskObj.userId;
                     userService.rewardTaskCompletion(rewardUserId).catch(console.error);
 
-                    // Log to activity feed
                     if (taskObj.workspaceId) {
                         activityLogService.log(taskObj.workspaceId, {
                             action: 'task.completed',

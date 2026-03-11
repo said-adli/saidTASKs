@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import { useAuthStore } from '@/store/authStore';
+import { useProjectStore } from '@/store/useProjectStore';
+import { workspaceService } from '@/lib/firebase/workspaceService';
+import { LogOut, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Dialog,
@@ -11,8 +16,11 @@ import {
 } from "@/components/ui/dialog";
 
 export function WorkspaceMembers() {
-    const { workspaces, activeWorkspaceId, memberProfiles } = useWorkspaceStore();
+    const { workspaces, activeWorkspaceId, memberProfiles, setActiveWorkspaceId } = useWorkspaceStore();
+    const { user } = useAuthStore();
+    const { setActiveProjectId } = useProjectStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLeaving, setIsLeaving] = useState(false);
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
     const members = Object.values(memberProfiles);
@@ -23,6 +31,42 @@ export function WorkspaceMembers() {
     const DISPLAY_LIMIT = 3;
     const visibleMembers = members.slice(0, DISPLAY_LIMIT);
     const hiddenCount = members.length - DISPLAY_LIMIT;
+
+    const handleLeaveWorkspace = async () => {
+        if (!user || !activeWorkspaceId) return;
+        if (!confirm("Are you sure you want to leave this workspace?")) return;
+        try {
+            setIsLeaving(true);
+            await workspaceService.removeMember(activeWorkspaceId, user.uid);
+            setActiveWorkspaceId('');
+            setActiveProjectId('inbox');
+            setIsModalOpen(false);
+            toast.success("Left workspace successfully.");
+        } catch (error) {
+            console.error("Failed to leave:", error);
+            toast.error("Failed to leave workspace.");
+        } finally {
+            setIsLeaving(false);
+        }
+    };
+
+    const handleDeleteWorkspace = async () => {
+        if (!user || !activeWorkspaceId) return;
+        if (!confirm("Are you sure you want to completely delete this workspace? This cannot be undone!")) return;
+        try {
+            setIsLeaving(true);
+            await workspaceService.deleteWorkspace(activeWorkspaceId);
+            setActiveWorkspaceId('');
+            setActiveProjectId('inbox');
+            setIsModalOpen(false);
+            toast.success("Workspace deleted.");
+        } catch (error) {
+            console.error("Failed to delete:", error);
+            toast.error("Failed to delete workspace.");
+        } finally {
+            setIsLeaving(false);
+        }
+    };
 
     return (
         <div className="py-2">
@@ -102,6 +146,29 @@ export function WorkspaceMembers() {
                             </div>
                         ))}
                     </div>
+                    {user && (
+                        <div className="pt-4 mt-2 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
+                            {activeWorkspace.ownerId === user.uid ? (
+                                <button
+                                    onClick={handleDeleteWorkspace}
+                                    disabled={isLeaving}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    {isLeaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                    Delete Workspace
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleLeaveWorkspace}
+                                    disabled={isLeaving}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    {isLeaving ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                                    Leave Workspace
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

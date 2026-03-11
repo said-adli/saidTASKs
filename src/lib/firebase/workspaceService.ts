@@ -13,6 +13,7 @@ import {
     serverTimestamp,
     Timestamp,
     arrayUnion,
+    arrayRemove,
     limit,
     addDoc,
     onSnapshot,
@@ -88,6 +89,15 @@ export const workspaceService = {
     deleteWorkspace: async (workspaceId: string) => {
         const workspaceRef = doc(db, 'workspaces', workspaceId);
         await deleteDoc(workspaceRef);
+        // Also delete join code public entry if possible, but requires searching or knowing it
+        // and deleting tasks? Handled by Cloud Functions or omitted for simplicity.
+    },
+
+    removeMember: async (workspaceId: string, userId: string) => {
+        const workspaceRef = doc(db, 'workspaces', workspaceId);
+        await updateDoc(workspaceRef, {
+            memberIds: arrayRemove(userId)
+        });
     },
 
     /**

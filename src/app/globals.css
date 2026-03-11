@@ -7,6 +7,14 @@
   --foreground: #171717;
   --popover: #ffffff;
   --popover-foreground: #171717;
+  
+  /* Global Z-Index System */
+  --z-base: 0;
+  --z-sidebar: 40;
+  --z-header: 50;
+  --z-modal: 100;
+  --z-command: 200;
+  --z-toast: 300;
 }
 
 @media (prefers-color-scheme: dark) {
